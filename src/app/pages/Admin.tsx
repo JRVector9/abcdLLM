@@ -44,6 +44,8 @@ import {
   adminGetModelPerformance,
   adminGetInsights,
   listModels,
+  adminGetOllamaSettings,
+  adminUpdateOllamaSettings,
 } from '../services/apiService';
 import { User, ModelInfo, SystemMetrics, SecurityEvent, ModelPerformance } from '../types';
 
@@ -55,6 +57,9 @@ export default function Admin() {
   const [metrics, setMetrics] = useState<SystemMetrics>({ cpu: 0, memory: 0, disk: 0, uptime: '-', activeRequests: 0, errorRate: 0, avgResponseTime: 0 });
   const [securityEvents, setSecurityEvents] = useState<SecurityEvent[]>([]);
   const [modelPerformance, setModelPerformance] = useState<ModelPerformance[]>([]);
+  const [ollamaUrl, setOllamaUrl] = useState<string>('');
+  const [ollamaUrlInput, setOllamaUrlInput] = useState<string>('');
+  const [isUpdatingOllamaUrl, setIsUpdatingOllamaUrl] = useState(false);
 
   useEffect(() => {
     adminGetUsers().then(setUsers).catch(() => {});
@@ -69,7 +74,28 @@ export default function Admin() {
         if (fetched.length > 0) setLiveModels(fetched);
       })
       .catch(() => {});
+
+    adminGetOllamaSettings()
+      .then((data) => {
+        setOllamaUrl(data.ollamaBaseUrl);
+        setOllamaUrlInput(data.ollamaBaseUrl);
+      })
+      .catch(() => {});
   }, []);
+
+  const handleUpdateOllamaUrl = async () => {
+    if (!ollamaUrlInput.trim()) return;
+    setIsUpdatingOllamaUrl(true);
+    try {
+      const data = await adminUpdateOllamaSettings(ollamaUrlInput);
+      setOllamaUrl(data.ollamaBaseUrl);
+      alert('Ollama URL 업데이트 완료!');
+    } catch (error) {
+      alert('Ollama URL 업데이트 실패: ' + (error as Error).message);
+    } finally {
+      setIsUpdatingOllamaUrl(false);
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -394,6 +420,50 @@ export default function Admin() {
 
           {/* Tab 4: Ollama Models */}
           <TabsContent value="models" className="space-y-8">
+            {/* Ollama URL Configuration */}
+            <Card className="bg-gradient-to-br from-blue-600/10 to-purple-600/10 border-blue-500/20">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Server className="w-6 h-6 text-blue-400" />
+                  Ollama 서버 설정
+                </CardTitle>
+                <CardDescription className="text-slate-400">
+                  Ollama 서버 연결 URL을 관리합니다. 변경 후 즉시 적용됩니다.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <label className="text-xs font-bold text-slate-400 uppercase mb-2 block">
+                      Ollama Base URL
+                    </label>
+                    <Input
+                      type="text"
+                      value={ollamaUrlInput}
+                      onChange={(e) => setOllamaUrlInput(e.target.value)}
+                      placeholder="http://192.168.139.3:11434"
+                      className="bg-white/5 border-white/10 text-white font-mono"
+                    />
+                  </div>
+                  <div className="pt-6">
+                    <Button
+                      onClick={handleUpdateOllamaUrl}
+                      disabled={isUpdatingOllamaUrl || ollamaUrlInput === ollamaUrl}
+                      className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
+                    >
+                      {isUpdatingOllamaUrl ? '업데이트 중...' : '적용'}
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <CheckCircle className="w-4 h-4 text-emerald-400" />
+                  <span className="text-slate-400">
+                    현재 연결: <span className="text-white font-mono">{ollamaUrl || '로딩 중...'}</span>
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {modelPerformance.map(perf => (
                 <Card key={perf.name} className="bg-slate-900/50 border-white/10 hover:border-blue-500/50 transition-all group">

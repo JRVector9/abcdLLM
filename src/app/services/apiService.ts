@@ -304,3 +304,22 @@ export async function adminUpdateApplication(appId: string, data: { status: stri
   if (!res.ok) throw new Error('Failed to update application');
   return res.json();
 }
+
+export interface OllamaSettings {
+  ollamaBaseUrl: string;
+}
+
+export async function adminGetOllamaSettings(): Promise<OllamaSettings> {
+  const res = await authFetch('/admin/ollama-settings');
+  if (!res.ok) throw new Error('Failed to fetch Ollama settings');
+  return res.json();
+}
+
+export async function adminUpdateOllamaSettings(ollamaBaseUrl: string): Promise<OllamaSettings> {
+  const res = await authFetch('/admin/ollama-settings', {
+    method: 'PATCH',
+    body: JSON.stringify({ ollamaBaseUrl }),
+  });
+  if (!res.ok) throw new Error('Failed to update Ollama settings');
+  return res.json();
+}
