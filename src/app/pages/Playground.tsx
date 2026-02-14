@@ -34,6 +34,7 @@ export default function Playground() {
   const [showSettings, setShowSettings] = useState(false);
   const [models, setModels] = useState<ModelInfo[]>(MOCK_MODELS);
   const [ollamaOnline, setOllamaOnline] = useState<boolean | null>(null);
+  const [isComposing, setIsComposing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -100,10 +101,18 @@ export default function Playground() {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !isComposing) {
       e.preventDefault();
       handleSend();
     }
+  };
+
+  const handleCompositionStart = () => {
+    setIsComposing(true);
+  };
+
+  const handleCompositionEnd = () => {
+    setIsComposing(false);
   };
 
   const clearChat = () => {
@@ -317,6 +326,8 @@ export default function Playground() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyPress}
+                  onCompositionStart={handleCompositionStart}
+                  onCompositionEnd={handleCompositionEnd}
                   placeholder={`Message ${selectedModel}... (Shift+Enter로 줄바꿈)`}
                   className="flex-1 bg-white/5 border-white/10 text-white placeholder:text-slate-500 resize-none"
                   rows={1}
