@@ -533,6 +533,51 @@ Content-Type: application/json
                       </div>
                     </div>
 
+                    <div>
+                      <h4 className="text-slate-200 font-bold mb-3">방법 3: Ollama Chat Model 노드</h4>
+                      <p className="text-slate-400 text-sm mb-3">
+                        n8n의 <code className="bg-slate-950 text-purple-300 px-1.5 py-0.5 rounded">Ollama Chat Model</code> 노드는 API Key 필드가 없으므로,
+                        Base URL에 키를 포함하는 방식으로 설정합니다.
+                      </p>
+                      <div className="bg-slate-950/50 p-4 rounded-xl border border-white/10 space-y-3 text-sm">
+                        <div className="flex items-start gap-3">
+                          <span className="bg-orange-600/20 text-orange-400 text-xs font-bold px-2 py-0.5 rounded shrink-0">1</span>
+                          <div>
+                            <p className="text-white font-medium">Ollama API Credential 생성</p>
+                            <p className="text-slate-400 text-xs mt-1">
+                              n8n → Credentials → New → <strong>Ollama API</strong> 선택
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <span className="bg-orange-600/20 text-orange-400 text-xs font-bold px-2 py-0.5 rounded shrink-0">2</span>
+                          <div>
+                            <p className="text-white font-medium">Base URL 설정</p>
+                            <p className="text-slate-400 text-xs mt-1">
+                              Base URL에 입력:{' '}
+                              <code className="text-orange-300">https://abcdllm-api.jrai.space/api/v1</code>
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <span className="bg-orange-600/20 text-orange-400 text-xs font-bold px-2 py-0.5 rounded shrink-0">3</span>
+                          <div>
+                            <p className="text-white font-medium">Ollama Chat Model 노드 설정</p>
+                            <p className="text-slate-400 text-xs mt-1">
+                              Model 필드에 <code className="text-orange-300">qwen3:8b</code> 등 모델명 입력
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-3 p-3 bg-red-950/30 border border-red-500/20 rounded-xl">
+                        <p className="text-xs text-red-300">
+                          <strong>주의:</strong> Ollama 노드는 API Key 인증을 지원하지 않습니다.
+                          인증이 필요한 경우 <strong>OpenAI Chat Model 노드</strong>(방법 1)를 사용하세요.
+                          Ollama 노드는 내부 네트워크 등 인증 없이 접근 가능한 환경에서만 사용할 수 있습니다.
+                        </p>
+                      </div>
+                    </div>
+
                     <div className="p-3 bg-amber-950/30 border border-amber-500/20 rounded-xl">
                       <p className="text-xs text-amber-300">
                         <strong>Tip:</strong> AI Agent 노드에서도 OpenAI Chat Model을 Sub-Node로 연결하면 동일하게 사용 가능합니다.
