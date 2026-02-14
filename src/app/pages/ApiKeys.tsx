@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -22,27 +22,15 @@ import {
   Code
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { ApiKeyEntry, User } from '../types';
+import { ApiKeyEntry } from '../types';
+import { getKeys, createKey, deleteKey as apiDeleteKey } from '../services/apiService';
 
 export default function ApiKeys() {
-  const stored = localStorage.getItem('user');
-  const user: User | null = stored ? JSON.parse(stored) : null;
-
-  const [keys, setKeys] = useState<ApiKeyEntry[]>([
-    {
-      id: '1',
-      name: 'Default Production Key',
-      key: user?.apiKey || 'sk-abcd-default-key',
-      createdAt: '2023-10-15',
-      dailyRequests: 100,
-      dailyTokens: 2000,
-      totalTokens: 5000
-    }
-  ]);
-
+  const [keys, setKeys] = useState<(ApiKeyEntry & { plainKey?: string })[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showKeys, setShowKeys] = useState<{ [key: string]: boolean }>({});
+  const [loading, setLoading] = useState(true);
 
   const [newKeyForm, setNewKeyForm] = useState({
     name: '',
@@ -51,21 +39,40 @@ export default function ApiKeys() {
     totalTokens: 5000
   });
 
-  const handleCreateKey = (e: React.FormEvent) => {
+  useEffect(() => {
+    loadKeys();
+  }, []);
+
+  const loadKeys = async () => {
+    try {
+      const data = await getKeys();
+      setKeys(data);
+    } catch {
+      toast.error('API 키 목록을 불러올 수 없습니다');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateKey = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newEntry: ApiKeyEntry = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: newKeyForm.name || 'My API Key',
-      key: `sk-abcd-${Math.random().toString(36).substr(2, 12)}`,
-      createdAt: new Date().toISOString().split('T')[0],
-      dailyRequests: newKeyForm.dailyRequests,
-      dailyTokens: newKeyForm.dailyTokens,
-      totalTokens: newKeyForm.totalTokens,
-    };
-    setKeys([newEntry, ...keys]);
-    setIsCreating(false);
-    setNewKeyForm({ name: '', dailyRequests: 100, dailyTokens: 2000, totalTokens: 5000 });
-    toast.success('새 API 키가 생성되었습니다');
+    try {
+      const result = await createKey({
+        name: newKeyForm.name || 'My API Key',
+        dailyRequests: newKeyForm.dailyRequests,
+        dailyTokens: newKeyForm.dailyTokens,
+        totalTokens: newKeyForm.totalTokens,
+      });
+      setKeys([result, ...keys]);
+      setIsCreating(false);
+      setNewKeyForm({ name: '', dailyRequests: 100, dailyTokens: 2000, totalTokens: 5000 });
+      toast.success('새 API 키가 생성되었습니다');
+      if (result.plainKey) {
+        toast.info('생성된 키를 안전하게 보관하세요. 다시 확인할 수 없습니다.');
+      }
+    } catch {
+      toast.error('API 키 생성 실패');
+    }
   };
 
   const copyToClipboard = (key: string, id: string) => {
@@ -75,10 +82,15 @@ export default function ApiKeys() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const deleteKey = (id: string) => {
+  const handleDeleteKey = async (id: string) => {
     if (window.confirm('Are you sure you want to revoke this API key?')) {
-      setKeys(keys.filter(k => k.id !== id));
-      toast.success('API 키가 삭제되었습니다');
+      try {
+        await apiDeleteKey(id);
+        setKeys(keys.filter(k => k.id !== id));
+        toast.success('API 키가 삭제되었습니다');
+      } catch {
+        toast.error('API 키 삭제 실패');
+      }
     }
   };
 
@@ -140,7 +152,9 @@ export default function ApiKeys() {
                   <Calendar className="size-4 text-green-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-white">2분 전</div>
+                  <div className="text-3xl font-bold text-white">
+                    {keys.length > 0 ? keys[0].createdAt : '-'}
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -241,61 +255,67 @@ export default function ApiKeys() {
 
             {/* Key List */}
             <div className="space-y-4">
-              {keys.map(k => (
-                <Card key={k.id} className="bg-slate-900/50 border-white/10 hover:border-white/20 transition">
-                  <CardContent className="p-6">
-                    <div className="flex flex-col md:flex-row justify-between gap-6">
-                      <div className="flex-1 space-y-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-blue-600/20 rounded-lg flex items-center justify-center">
-                            <Key className="size-5 text-blue-500" />
+              {loading ? (
+                <div className="text-center py-12 text-slate-400">Loading...</div>
+              ) : keys.length === 0 ? (
+                <div className="text-center py-12 text-slate-400">API 키가 없습니다. 새 키를 생성하세요.</div>
+              ) : (
+                keys.map(k => (
+                  <Card key={k.id} className="bg-slate-900/50 border-white/10 hover:border-white/20 transition">
+                    <CardContent className="p-6">
+                      <div className="flex flex-col md:flex-row justify-between gap-6">
+                        <div className="flex-1 space-y-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-blue-600/20 rounded-lg flex items-center justify-center">
+                              <Key className="size-5 text-blue-500" />
+                            </div>
+                            <div>
+                              <h4 className="text-lg font-medium text-white">{k.name}</h4>
+                              <p className="text-xs text-slate-500">Created on {k.createdAt}</p>
+                            </div>
                           </div>
-                          <div>
-                            <h4 className="text-lg font-medium text-white">{k.name}</h4>
-                            <p className="text-xs text-slate-500">Created on {k.createdAt}</p>
-                          </div>
-                        </div>
-                        <div className="bg-slate-950/50 rounded-lg p-4 border border-white/10">
-                          <div className="flex items-center justify-between">
-                            <code className="text-sm text-slate-300 font-mono truncate pr-4">
-                              {showKeys[k.id] ? k.key : maskKey(k.key)}
-                            </code>
-                            <div className="flex items-center gap-2 shrink-0">
-                              <Button size="sm" variant="ghost" onClick={() => setShowKeys(prev => ({ ...prev, [k.id]: !prev[k.id] }))} className="text-slate-400 hover:text-white">
-                                {showKeys[k.id] ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                              </Button>
-                              <Button size="sm" variant="ghost" onClick={() => copyToClipboard(k.key, k.id)} className="text-slate-400 hover:text-white">
-                                {copiedId === k.id ? <Check className="size-4 text-emerald-400" /> : <Copy className="size-4" />}
-                              </Button>
+                          <div className="bg-slate-950/50 rounded-lg p-4 border border-white/10">
+                            <div className="flex items-center justify-between">
+                              <code className="text-sm text-slate-300 font-mono truncate pr-4">
+                                {showKeys[k.id] ? (k.plainKey || k.key) : maskKey(k.plainKey || k.key)}
+                              </code>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <Button size="sm" variant="ghost" onClick={() => setShowKeys(prev => ({ ...prev, [k.id]: !prev[k.id] }))} className="text-slate-400 hover:text-white">
+                                  {showKeys[k.id] ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                                </Button>
+                                <Button size="sm" variant="ghost" onClick={() => copyToClipboard(k.plainKey || k.key, k.id)} className="text-slate-400 hover:text-white">
+                                  {copiedId === k.id ? <Check className="size-4 text-emerald-400" /> : <Copy className="size-4" />}
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="flex flex-col md:items-end justify-between min-w-[180px]">
-                        <div className="grid grid-cols-3 md:flex md:flex-col gap-4 text-right">
-                          <div>
-                            <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Daily Req</div>
-                            <div className="text-sm font-bold text-white">{k.dailyRequests}</div>
+                        <div className="flex flex-col md:items-end justify-between min-w-[180px]">
+                          <div className="grid grid-cols-3 md:flex md:flex-col gap-4 text-right">
+                            <div>
+                              <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Daily Req</div>
+                              <div className="text-sm font-bold text-white">{k.dailyRequests}</div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Daily Tokens</div>
+                              <div className="text-sm font-bold text-white">{k.dailyTokens.toLocaleString()}</div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Total Limit</div>
+                              <div className="text-sm font-bold text-emerald-400">{k.totalTokens.toLocaleString()}</div>
+                            </div>
                           </div>
-                          <div>
-                            <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Daily Tokens</div>
-                            <div className="text-sm font-bold text-white">{k.dailyTokens.toLocaleString()}</div>
-                          </div>
-                          <div>
-                            <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Total Limit</div>
-                            <div className="text-sm font-bold text-emerald-400">{k.totalTokens.toLocaleString()}</div>
-                          </div>
+                          <Button size="sm" variant="ghost" onClick={() => handleDeleteKey(k.id)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10 mt-4">
+                            <Trash2 className="size-4 mr-2" />
+                            삭제
+                          </Button>
                         </div>
-                        <Button size="sm" variant="ghost" onClick={() => deleteKey(k.id)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10 mt-4">
-                          <Trash2 className="size-4 mr-2" />
-                          삭제
-                        </Button>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
           </TabsContent>
 

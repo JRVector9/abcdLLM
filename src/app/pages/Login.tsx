@@ -6,74 +6,48 @@ import { Label } from '../components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Bot, Mail, Lock, User as UserIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import { MOCK_USERS } from '../constants';
-import { User, UserRole } from '../types';
+import { login, signup } from '../services/apiService';
 
 export default function Login() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [signupName, setSignupName] = useState('');
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
+  const [signupConfirm, setSignupConfirm] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
-    setTimeout(() => {
-      const found = MOCK_USERS.find(u => u.email === loginEmail);
-      let user: User;
-
-      if (found) {
-        user = found;
-      } else {
-        user = {
-          id: Math.random().toString(36).substr(2, 9),
-          email: loginEmail,
-          name: loginEmail.split('@')[0],
-          role: UserRole.USER,
-          apiKey: 'sk-new-' + Math.floor(Math.random() * 10000),
-          usage: 150,
-          dailyUsage: 50,
-          dailyQuota: 5000,
-          totalQuota: 50000,
-          lastActive: 'Just now',
-          ip: '127.0.0.1',
-          status: 'active',
-          accessCount: 1
-        };
-      }
-
-      localStorage.setItem('user', JSON.stringify(user));
+    try {
+      await login(loginEmail, loginPassword);
       toast.success('로그인 성공!');
       navigate('/dashboard');
+    } catch (err: any) {
+      toast.error(err.message || '로그인 실패');
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (signupPassword !== signupConfirm) {
+      toast.error('비밀번호가 일치하지 않습니다');
+      return;
+    }
     setIsLoading(true);
-
-    setTimeout(() => {
-      const user: User = {
-        id: Math.random().toString(36).substr(2, 9),
-        email: 'newuser@example.com',
-        name: 'New User',
-        role: UserRole.USER,
-        apiKey: 'sk-new-' + Math.floor(Math.random() * 10000),
-        usage: 0,
-        dailyUsage: 0,
-        dailyQuota: 5000,
-        totalQuota: 50000,
-        lastActive: 'Just now',
-        ip: '127.0.0.1',
-        status: 'active',
-        accessCount: 0
-      };
-      localStorage.setItem('user', JSON.stringify(user));
+    try {
+      await signup(signupEmail, signupPassword, signupName);
       toast.success('회원가입 성공!');
       navigate('/dashboard');
+    } catch (err: any) {
+      toast.error(err.message || '회원가입 실패');
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -115,9 +89,6 @@ export default function Login() {
                       required
                     />
                   </div>
-                  <p className="text-xs text-slate-400 mt-1">
-                    관리자 계정: admin@abcdllm.com
-                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -130,6 +101,8 @@ export default function Login() {
                       id="password"
                       type="password"
                       placeholder="••••••••"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
                       className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-slate-500"
                       required
                     />
@@ -168,6 +141,8 @@ export default function Login() {
                       id="signup-name"
                       type="text"
                       placeholder="홍길동"
+                      value={signupName}
+                      onChange={(e) => setSignupName(e.target.value)}
                       className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-slate-500"
                       required
                     />
@@ -184,6 +159,8 @@ export default function Login() {
                       id="signup-email"
                       type="email"
                       placeholder="your@email.com"
+                      value={signupEmail}
+                      onChange={(e) => setSignupEmail(e.target.value)}
                       className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-slate-500"
                       required
                     />
@@ -200,6 +177,8 @@ export default function Login() {
                       id="signup-password"
                       type="password"
                       placeholder="••••••••"
+                      value={signupPassword}
+                      onChange={(e) => setSignupPassword(e.target.value)}
                       className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-slate-500"
                       required
                     />
@@ -216,6 +195,8 @@ export default function Login() {
                       id="signup-confirm"
                       type="password"
                       placeholder="••••••••"
+                      value={signupConfirm}
+                      onChange={(e) => setSignupConfirm(e.target.value)}
                       className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-slate-500"
                       required
                     />

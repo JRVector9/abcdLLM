@@ -17,8 +17,8 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { User, UserRole } from '../types';
-import { MOCK_USAGE } from '../constants';
+import { User, UsageStat } from '../types';
+import { getDashboard, ollamaHealth, getStoredUser } from '../services/apiService';
 
 const ProgressBar = ({ label, current, total, colorClass = "bg-blue-500" }: { label: string; current: number; total: number; colorClass?: string }) => {
   const percentage = Math.min(100, Math.round((current / total) * 100));
@@ -39,10 +39,25 @@ const ProgressBar = ({ label, current, total, colorClass = "bg-blue-500" }: { la
 };
 
 export default function Dashboard() {
-  const stored = localStorage.getItem('user');
-  const user: User | null = stored ? JSON.parse(stored) : null;
-
+  const [user, setUser] = useState<User | null>(getStoredUser());
+  const [recentUsage, setRecentUsage] = useState<UsageStat[]>([]);
+  const [activeModels, setActiveModels] = useState(0);
+  const [totalRequests, setTotalRequests] = useState(0);
+  const [ollamaOnline, setOllamaOnline] = useState(false);
   const [resetTime, setResetTime] = useState('');
+
+  useEffect(() => {
+    getDashboard()
+      .then((data) => {
+        setUser(data.user);
+        setRecentUsage(data.recentUsage);
+        setActiveModels(data.activeModels);
+        setTotalRequests(data.totalRequests);
+      })
+      .catch(() => {});
+
+    ollamaHealth().then(setOllamaOnline);
+  }, []);
 
   useEffect(() => {
     const updateTimer = () => {
@@ -58,6 +73,10 @@ export default function Dashboard() {
     const interval = setInterval(updateTimer, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  const avgResponseTime = recentUsage.length > 0
+    ? Math.round(recentUsage.reduce((sum, u) => sum + u.responseTime, 0) / recentUsage.length)
+    : 0;
 
   return (
     <DashboardLayout>
@@ -85,22 +104,16 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-white">{user?.dailyUsage?.toLocaleString() || '0'}</div>
-              <p className="text-xs text-slate-400 mt-1">
-                <span className="text-green-500">+12%</span> vs yesterday
-              </p>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-600/20 to-purple-600/5 border-purple-500/20">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-200">Requests (24h)</CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-200">Total Requests</CardTitle>
               <Activity className="size-4 text-purple-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-white">1,240</div>
-              <p className="text-xs text-slate-400 mt-1">
-                <span className="text-green-500">+8%</span> vs yesterday
-              </p>
+              <div className="text-3xl font-bold text-white">{totalRequests.toLocaleString()}</div>
             </CardContent>
           </Card>
 
@@ -123,10 +136,7 @@ export default function Dashboard() {
               <CheckCircle2 className="size-4 text-orange-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-white">184ms</div>
-              <p className="text-xs text-slate-400 mt-1">
-                <span className="text-green-500">-15%</span> improvement
-              </p>
+              <div className="text-3xl font-bold text-white">{avgResponseTime}ms</div>
             </CardContent>
           </Card>
         </div>
@@ -141,15 +151,11 @@ export default function Dashboard() {
                   <BarChart3 className="w-5 h-5 text-blue-400" />
                   <CardTitle className="text-white">Usage History (Tokens)</CardTitle>
                 </div>
-                <select className="bg-slate-800 border border-white/10 rounded-md px-3 py-1 text-sm text-white outline-none">
-                  <option>Last 7 Days</option>
-                  <option>Last 30 Days</option>
-                </select>
               </div>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={MOCK_USAGE}>
+                <AreaChart data={recentUsage}>
                   <defs>
                     <linearGradient id="colorTokens" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
@@ -248,8 +254,10 @@ export default function Dashboard() {
             <CardContent>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-green-500 font-medium">연결됨</span>
+                  <div className={`w-3 h-3 rounded-full ${ollamaOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+                  <span className={`font-medium ${ollamaOnline ? 'text-green-500' : 'text-red-500'}`}>
+                    {ollamaOnline ? '연결됨' : '오프라인'}
+                  </span>
                 </div>
                 <Button variant="outline" size="sm" className="text-white border-white/20 hover:bg-white/10">
                   상세 보기
@@ -258,11 +266,11 @@ export default function Dashboard() {
               <div className="mt-4 pt-4 border-t border-white/10 grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <p className="text-slate-400">실행 중인 모델</p>
-                  <p className="text-white font-medium mt-1">5개</p>
+                  <p className="text-white font-medium mt-1">{activeModels}개</p>
                 </div>
                 <div>
                   <p className="text-slate-400">업타임</p>
-                  <p className="text-white font-medium mt-1">5일 12시간</p>
+                  <p className="text-white font-medium mt-1">-</p>
                 </div>
               </div>
             </CardContent>

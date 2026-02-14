@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router';
 import { Button } from '../components/ui/button';
 import {
@@ -16,8 +16,8 @@ import {
   Zap
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useState } from 'react';
 import { User, UserRole } from '../types';
+import { clearAuth, getStoredUser, getMe } from '../services/apiService';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -27,13 +27,24 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [user, setUser] = useState<User | null>(getStoredUser());
 
-  const stored = localStorage.getItem('user');
-  const user: User | null = stored ? JSON.parse(stored) : null;
+  useEffect(() => {
+    getMe()
+      .then((u) => {
+        setUser(u);
+        localStorage.setItem('user', JSON.stringify(u));
+      })
+      .catch(() => {
+        clearAuth();
+        navigate('/login');
+      });
+  }, [location.pathname]);
+
   const isAdmin = user?.role === UserRole.ADMIN || user?.role === ('admin' as any);
 
   const handleLogout = () => {
-    localStorage.removeItem('user');
+    clearAuth();
     toast.success('로그아웃되었습니다');
     navigate('/');
   };

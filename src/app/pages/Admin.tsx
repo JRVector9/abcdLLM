@@ -34,26 +34,37 @@ import {
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import {
-  MOCK_USERS,
   MOCK_MODELS,
-  MOCK_METRICS,
-  MOCK_SECURITY_EVENTS,
-  MOCK_MODEL_PERFORMANCE,
   MOCK_USAGE
 } from '../constants';
-import { getAdminInsights, ollamaListModels } from '../services/ollamaService';
-import { ModelInfo } from '../types';
+import {
+  adminGetUsers,
+  adminGetMetrics,
+  adminGetSecurityEvents,
+  adminGetModelPerformance,
+  adminGetInsights,
+  listModels,
+} from '../services/apiService';
+import { User, ModelInfo, SystemMetrics, SecurityEvent, ModelPerformance } from '../types';
 
 export default function Admin() {
   const [searchQuery, setSearchQuery] = useState('');
   const [insights, setInsights] = useState<string>('Analyzing system patterns...');
   const [liveModels, setLiveModels] = useState<ModelInfo[]>(MOCK_MODELS);
+  const [users, setUsers] = useState<User[]>([]);
+  const [metrics, setMetrics] = useState<SystemMetrics>({ cpu: 0, memory: 0, disk: 0, uptime: '-', activeRequests: 0, errorRate: 0, avgResponseTime: 0 });
+  const [securityEvents, setSecurityEvents] = useState<SecurityEvent[]>([]);
+  const [modelPerformance, setModelPerformance] = useState<ModelPerformance[]>([]);
 
   useEffect(() => {
-    getAdminInsights({ users: MOCK_USERS, metrics: MOCK_METRICS, security: MOCK_SECURITY_EVENTS })
-      .then(setInsights);
+    adminGetUsers().then(setUsers).catch(() => {});
+    adminGetMetrics().then(setMetrics).catch(() => {});
+    adminGetSecurityEvents().then(setSecurityEvents).catch(() => {});
+    adminGetModelPerformance().then(setModelPerformance).catch(() => {});
 
-    ollamaListModels()
+    adminGetInsights({ status: 'requesting analysis' }).then(setInsights).catch(() => {});
+
+    listModels()
       .then((fetched) => {
         if (fetched.length > 0) setLiveModels(fetched);
       })
@@ -122,7 +133,7 @@ export default function Admin() {
                   <Flame className="size-4 text-orange-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-white">{MOCK_METRICS.activeRequests}</div>
+                  <div className="text-3xl font-bold text-white">{metrics.activeRequests}</div>
                 </CardContent>
               </Card>
               <Card className="bg-gradient-to-br from-green-600/20 to-green-600/5 border-green-500/20">
@@ -131,7 +142,7 @@ export default function Admin() {
                   <Clock className="size-4 text-green-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-white">{MOCK_METRICS.avgResponseTime}ms</div>
+                  <div className="text-3xl font-bold text-white">{metrics.avgResponseTime}ms</div>
                 </CardContent>
               </Card>
               <Card className="bg-gradient-to-br from-red-600/20 to-red-600/5 border-red-500/20">
@@ -140,7 +151,7 @@ export default function Admin() {
                   <XCircle className="size-4 text-red-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-white">{MOCK_METRICS.errorRate}%</div>
+                  <div className="text-3xl font-bold text-white">{metrics.errorRate}%</div>
                 </CardContent>
               </Card>
               <Card className="bg-gradient-to-br from-blue-600/20 to-blue-600/5 border-blue-500/20">
@@ -149,7 +160,7 @@ export default function Admin() {
                   <Users className="size-4 text-blue-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-white">{MOCK_USERS.length}</div>
+                  <div className="text-3xl font-bold text-white">{users.length}</div>
                 </CardContent>
               </Card>
             </div>
@@ -187,9 +198,9 @@ export default function Admin() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {[
-                    { label: 'CPU Load', value: MOCK_METRICS.cpu, color: 'bg-blue-500' },
-                    { label: 'Memory Usage', value: MOCK_METRICS.memory, color: 'bg-purple-500' },
-                    { label: 'Disk IOPS', value: MOCK_METRICS.disk, color: 'bg-amber-500' },
+                    { label: 'CPU Load', value: metrics.cpu, color: 'bg-blue-500' },
+                    { label: 'Memory Usage', value: metrics.memory, color: 'bg-purple-500' },
+                    { label: 'Disk IOPS', value: metrics.disk, color: 'bg-amber-500' },
                   ].map(res => (
                     <div key={res.label} className="space-y-2">
                       <div className="flex justify-between text-sm">
@@ -239,7 +250,7 @@ export default function Admin() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                      {MOCK_USERS.map(u => (
+                      {users.map(u => (
                         <tr key={u.id} className="hover:bg-white/5 transition-colors">
                           <td className="px-6 py-5">
                             <div className="flex items-center gap-4">
@@ -306,7 +317,7 @@ export default function Admin() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {MOCK_SECURITY_EVENTS.map(event => (
+                    {securityEvents.map(event => (
                       <div key={event.id} className={`p-4 rounded-xl border flex gap-4 ${
                         event.severity === 'critical' ? 'bg-red-950/20 border-red-500/30' :
                         event.severity === 'medium' ? 'bg-amber-950/20 border-amber-500/30' :
@@ -384,7 +395,7 @@ export default function Admin() {
           {/* Tab 4: Ollama Models */}
           <TabsContent value="models" className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {MOCK_MODEL_PERFORMANCE.map(perf => (
+              {modelPerformance.map(perf => (
                 <Card key={perf.name} className="bg-slate-900/50 border-white/10 hover:border-blue-500/50 transition-all group">
                   <CardContent className="p-5">
                     <div className="flex justify-between items-start mb-4">

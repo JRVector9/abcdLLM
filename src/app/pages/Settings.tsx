@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -14,14 +14,36 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { User } from '../types';
+import {
+  getSettings,
+  updateSettings,
+  refreshApiKey,
+  updateWhitelist,
+  getStoredUser,
+  SettingsData,
+} from '../services/apiService';
 
 export default function Settings() {
-  const stored = localStorage.getItem('user');
-  const user: User | null = stored ? JSON.parse(stored) : null;
-
+  const [user, setUser] = useState<User | null>(getStoredUser());
   const [copied, setCopied] = useState(false);
-  const [autoUpdate, setAutoUpdate] = useState(true);
+  const [autoUpdate, setAutoUpdate] = useState(false);
   const [detailedLogging, setDetailedLogging] = useState(false);
+  const [ipWhitelist, setIpWhitelist] = useState('');
+  const [emailAlerts, setEmailAlerts] = useState(false);
+  const [usageAlert, setUsageAlert] = useState(false);
+
+  useEffect(() => {
+    getSettings()
+      .then((data) => {
+        setUser(data.user);
+        setAutoUpdate(data.autoModelUpdate);
+        setDetailedLogging(data.detailedLogging);
+        setIpWhitelist(data.ipWhitelist);
+        setEmailAlerts(data.emailSecurityAlerts);
+        setUsageAlert(data.usageThresholdAlert);
+      })
+      .catch(() => {});
+  }, []);
 
   const copyKey = () => {
     if (user?.apiKey) {
@@ -29,6 +51,36 @@ export default function Settings() {
       setCopied(true);
       toast.success('API 키가 복사되었습니다');
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleRefreshKey = async () => {
+    try {
+      const result = await refreshApiKey();
+      navigator.clipboard.writeText(result.apiKey);
+      toast.success('새 API 키가 생성되어 클립보드에 복사되었습니다');
+      // Refresh settings to get updated key
+      const data = await getSettings();
+      setUser(data.user);
+    } catch {
+      toast.error('키 재발급 실패');
+    }
+  };
+
+  const handleToggle = async (field: string, value: boolean) => {
+    try {
+      await updateSettings({ [field]: value });
+    } catch {
+      toast.error('설정 변경 실패');
+    }
+  };
+
+  const handleWhitelistSave = async () => {
+    try {
+      await updateWhitelist(ipWhitelist);
+      toast.success('IP 화이트리스트가 저장되었습니다');
+    } catch {
+      toast.error('화이트리스트 저장 실패');
     }
   };
 
@@ -65,6 +117,7 @@ export default function Settings() {
                       {copied ? <span className="text-xs text-green-400">Copied!</span> : <Copy className="w-5 h-5" />}
                     </Button>
                     <Button
+                      onClick={handleRefreshKey}
                       variant="outline"
                       className="border-white/20 text-white hover:bg-red-900/40 hover:text-red-400"
                     >
@@ -79,6 +132,9 @@ export default function Settings() {
                     rows={2}
                     className="bg-white/5 border-white/10 text-white"
                     placeholder="e.g. 192.168.1.1, *.example.com"
+                    value={ipWhitelist}
+                    onChange={(e) => setIpWhitelist(e.target.value)}
+                    onBlur={handleWhitelistSave}
                   />
                   <p className="mt-2 text-xs text-slate-500 italic">Leave empty to allow access from any origin (not recommended).</p>
                 </div>
@@ -99,14 +155,26 @@ export default function Settings() {
                     <div className="text-sm font-medium text-white">Automatic Model Updates</div>
                     <div className="text-xs text-slate-500">Keep models updated to the latest available version</div>
                   </div>
-                  <Switch checked={autoUpdate} onCheckedChange={setAutoUpdate} />
+                  <Switch
+                    checked={autoUpdate}
+                    onCheckedChange={(v) => {
+                      setAutoUpdate(v);
+                      handleToggle('autoModelUpdate', v);
+                    }}
+                  />
                 </div>
                 <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
                   <div>
                     <div className="text-sm font-medium text-white">Detailed Request Logging</div>
                     <div className="text-xs text-slate-500">Log all prompt and completion metadata (increases storage)</div>
                   </div>
-                  <Switch checked={detailedLogging} onCheckedChange={setDetailedLogging} />
+                  <Switch
+                    checked={detailedLogging}
+                    onCheckedChange={(v) => {
+                      setDetailedLogging(v);
+                      handleToggle('detailedLogging', v);
+                    }}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -123,16 +191,16 @@ export default function Settings() {
                 <p className="text-slate-500 text-sm mb-6">{user?.email || ''}</p>
                 <div className="bg-slate-950/50 p-4 rounded-xl border border-white/10 space-y-4 text-left">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500">Plan</span>
-                    <span className="text-blue-400 font-bold uppercase">Pro Tier</span>
+                    <span className="text-slate-500">Role</span>
+                    <span className="text-blue-400 font-bold uppercase">{user?.role || 'USER'}</span>
                   </div>
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500">Member Since</span>
-                    <span className="text-slate-300">Oct 2023</span>
+                    <span className="text-slate-500">Status</span>
+                    <span className="text-emerald-400 font-bold capitalize">{user?.status || 'active'}</span>
                   </div>
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500">Billing Cycle</span>
-                    <span className="text-slate-300">Monthly</span>
+                    <span className="text-slate-500">Total Usage</span>
+                    <span className="text-slate-300">{user?.usage?.toLocaleString() || 0} tokens</span>
                   </div>
                 </div>
               </CardContent>
@@ -148,11 +216,27 @@ export default function Settings() {
               <CardContent>
                 <ul className="space-y-3">
                   <li className="flex gap-3 text-sm text-white">
-                    <input type="checkbox" className="mt-1 rounded border-white/20 bg-slate-700 text-blue-600" defaultChecked />
+                    <input
+                      type="checkbox"
+                      className="mt-1 rounded border-white/20 bg-slate-700 text-blue-600"
+                      checked={emailAlerts}
+                      onChange={(e) => {
+                        setEmailAlerts(e.target.checked);
+                        handleToggle('emailSecurityAlerts', e.target.checked);
+                      }}
+                    />
                     <span>Security alerts via email</span>
                   </li>
                   <li className="flex gap-3 text-sm text-white">
-                    <input type="checkbox" className="mt-1 rounded border-white/20 bg-slate-700 text-blue-600" defaultChecked />
+                    <input
+                      type="checkbox"
+                      className="mt-1 rounded border-white/20 bg-slate-700 text-blue-600"
+                      checked={usageAlert}
+                      onChange={(e) => {
+                        setUsageAlert(e.target.checked);
+                        handleToggle('usageThresholdAlert', e.target.checked);
+                      }}
+                    />
                     <span>Usage threshold warnings (80%)</span>
                   </li>
                 </ul>

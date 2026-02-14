@@ -23,7 +23,7 @@ import { Label } from '../components/ui/label';
 import { Slider } from '../components/ui/slider';
 import { Message, ModelInfo } from '../types';
 import { MOCK_MODELS } from '../constants';
-import { ollamaChat, ollamaListModels, ollamaHealthCheck } from '../services/ollamaService';
+import { chat as apiChat, listModels as apiListModels, ollamaHealth as apiHealthCheck } from '../services/apiService';
 
 export default function Playground() {
   const [messages, setMessages] = useState<(Message & { timestamp?: Date })[]>([]);
@@ -45,9 +45,9 @@ export default function Playground() {
   }, [messages]);
 
   useEffect(() => {
-    ollamaHealthCheck().then(setOllamaOnline);
+    apiHealthCheck().then(setOllamaOnline);
 
-    ollamaListModels()
+    apiListModels()
       .then((fetched) => {
         if (fetched.length > 0) {
           setModels(fetched);
@@ -79,7 +79,7 @@ export default function Playground() {
         content: m.content,
       }));
 
-      const responseText = await ollamaChat(selectedModel, chatMessages, {
+      const responseText = await apiChat(selectedModel, chatMessages, {
         temperature: temperature[0],
       });
 

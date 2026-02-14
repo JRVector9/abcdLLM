@@ -11,13 +11,15 @@ import {
   Info,
   AlertCircle
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { User } from '../types';
+import { createApplication, getStoredUser } from '../services/apiService';
 
 export default function ApiApplication() {
-  const stored = localStorage.getItem('user');
-  const user: User | null = stored ? JSON.parse(stored) : null;
+  const user: User | null = getStoredUser();
 
   const [submitted, setSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     projectName: '',
     useCase: '',
@@ -25,9 +27,23 @@ export default function ApiApplication() {
     model: 'llama3:8b'
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setIsLoading(true);
+    try {
+      await createApplication({
+        projectName: formData.projectName,
+        useCase: formData.useCase,
+        requestedQuota: parseInt(formData.estimatedDailyTokens),
+        targetModel: formData.model,
+      });
+      setSubmitted(true);
+      toast.success('신청이 완료되었습니다');
+    } catch {
+      toast.error('신청에 실패했습니다');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (submitted) {

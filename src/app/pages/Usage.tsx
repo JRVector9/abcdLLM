@@ -1,68 +1,52 @@
+import { useState, useEffect } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { 
-  AreaChart, 
-  Area, 
-  BarChart, 
-  Bar, 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   PieChart,
   Pie,
   Cell
 } from 'recharts';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Activity, 
-  Clock, 
+import {
+  TrendingUp,
+  TrendingDown,
+  Activity,
+  Clock,
   Zap,
   Calendar
 } from 'lucide-react';
-
-const dailyData = [
-  { date: '02/07', requests: 1234, tokens: 45670, errors: 12 },
-  { date: '02/08', requests: 1456, tokens: 52340, errors: 8 },
-  { date: '02/09', requests: 1678, tokens: 61230, errors: 15 },
-  { date: '02/10', requests: 1890, tokens: 68450, errors: 10 },
-  { date: '02/11', requests: 2123, tokens: 75890, errors: 6 },
-  { date: '02/12', requests: 2345, tokens: 83210, errors: 9 },
-  { date: '02/13', requests: 2567, tokens: 91450, errors: 7 },
-];
-
-const hourlyData = [
-  { hour: '00', requests: 45, responseTime: 245 },
-  { hour: '03', requests: 32, responseTime: 223 },
-  { hour: '06', requests: 78, responseTime: 267 },
-  { hour: '09', requests: 156, responseTime: 289 },
-  { hour: '12', requests: 234, responseTime: 301 },
-  { hour: '15', requests: 198, responseTime: 278 },
-  { hour: '18', requests: 267, responseTime: 256 },
-  { hour: '21', requests: 189, responseTime: 234 },
-];
-
-const modelData = [
-  { name: 'llama3.2', value: 4521, color: '#3b82f6' },
-  { name: 'gemma2', value: 3214, color: '#8b5cf6' },
-  { name: 'mistral', value: 2156, color: '#10b981' },
-  { name: 'codellama', value: 1892, color: '#f59e0b' },
-  { name: 'phi3', value: 1062, color: '#ef4444' },
-];
-
-const endpointData = [
-  { endpoint: '/v1/chat', requests: 8456, avgTime: 234 },
-  { endpoint: '/v1/generate', requests: 3214, avgTime: 456 },
-  { endpoint: '/v1/models', requests: 1234, avgTime: 89 },
-  { endpoint: '/v1/embeddings', requests: 941, avgTime: 312 },
-];
+import { UsageStat } from '../types';
+import { getDashboard } from '../services/apiService';
 
 export default function Usage() {
+  const [dailyData, setDailyData] = useState<UsageStat[]>([]);
+  const [totalRequests, setTotalRequests] = useState(0);
+
+  useEffect(() => {
+    getDashboard()
+      .then((data) => {
+        setDailyData(data.recentUsage);
+        setTotalRequests(data.totalRequests);
+      })
+      .catch(() => {});
+  }, []);
+
+  const todayRequests = dailyData.length > 0 ? dailyData[dailyData.length - 1]?.requests || 0 : 0;
+  const todayTokens = dailyData.length > 0 ? dailyData[dailyData.length - 1]?.tokens || 0 : 0;
+  const avgResponseTime = dailyData.length > 0
+    ? Math.round(dailyData.reduce((sum, d) => sum + d.responseTime, 0) / dailyData.length)
+    : 0;
   return (
     <DashboardLayout>
       <div className="space-y-8">
@@ -82,7 +66,7 @@ export default function Usage() {
               <Activity className="size-4 text-blue-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-white">2,567</div>
+              <div className="text-3xl font-bold text-white">{todayRequests.toLocaleString()}</div>
               <div className="flex items-center gap-1 text-xs text-green-500 mt-1">
                 <TrendingUp className="size-3" />
                 <span>+18.2% 어제 대비</span>
@@ -98,7 +82,7 @@ export default function Usage() {
               <Clock className="size-4 text-purple-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-white">234ms</div>
+              <div className="text-3xl font-bold text-white">{avgResponseTime}ms</div>
               <div className="flex items-center gap-1 text-xs text-green-500 mt-1">
                 <TrendingDown className="size-3" />
                 <span>-5.3% 어제 대비</span>
@@ -114,7 +98,7 @@ export default function Usage() {
               <Zap className="size-4 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-white">91.4K</div>
+              <div className="text-3xl font-bold text-white">{todayTokens > 1000 ? `${(todayTokens / 1000).toFixed(1)}K` : todayTokens}</div>
               <div className="flex items-center gap-1 text-xs text-green-500 mt-1">
                 <TrendingUp className="size-3" />
                 <span>+23.1% 어제 대비</span>
