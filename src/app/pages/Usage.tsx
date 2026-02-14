@@ -47,6 +47,10 @@ export default function Usage() {
   const avgResponseTime = dailyData.length > 0
     ? Math.round(dailyData.reduce((sum, d) => sum + d.responseTime, 0) / dailyData.length)
     : 0;
+
+  const hourlyData: { hour: string; requests: number; responseTime: number }[] = [];
+  const endpointData: { endpoint: string; requests: number; avgTime: number }[] = [];
+  const modelData: { name: string; value: number; color: string }[] = [];
   return (
     <DashboardLayout>
       <div className="space-y-8">
