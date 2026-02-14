@@ -19,7 +19,8 @@ import {
   ShieldCheck,
   BookOpen,
   Terminal,
-  Code
+  Code,
+  Zap
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ApiKeyEntry } from '../types';
@@ -323,6 +324,55 @@ export default function ApiKeys() {
           <TabsContent value="docs" className="space-y-8">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-8">
+                {/* Endpoints Reference */}
+                <Card className="bg-slate-900/50 border-white/10">
+                  <CardHeader>
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <Activity className="w-6 h-6 text-emerald-400" />
+                      API Endpoints
+                    </CardTitle>
+                    <CardDescription>OpenAI 호환 형식 — 기존 OpenAI SDK, LangChain, n8n 등에서 base_url만 변경하면 사용 가능</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="bg-slate-950/50 p-4 rounded-xl border border-white/10">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="bg-emerald-600/20 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded">POST</span>
+                          <code className="text-sm text-white font-mono">/v1/chat/completions</code>
+                        </div>
+                        <p className="text-xs text-slate-400">채팅 완성 — OpenAI 호환 응답 형식</p>
+                      </div>
+                      <div className="bg-slate-950/50 p-4 rounded-xl border border-white/10">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="bg-blue-600/20 text-blue-400 text-[10px] font-bold px-2 py-0.5 rounded">GET</span>
+                          <code className="text-sm text-white font-mono">/v1/models</code>
+                        </div>
+                        <p className="text-xs text-slate-400">사용 가능한 모델 목록 조회</p>
+                      </div>
+                      <div className="bg-slate-950/50 p-4 rounded-xl border border-white/10">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="bg-emerald-600/20 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded">POST</span>
+                          <code className="text-sm text-white font-mono">/api/v1/chat</code>
+                        </div>
+                        <p className="text-xs text-slate-400">채팅 (Ollama 네이티브 응답 형식)</p>
+                      </div>
+                      <div className="bg-slate-950/50 p-4 rounded-xl border border-white/10">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="bg-blue-600/20 text-blue-400 text-[10px] font-bold px-2 py-0.5 rounded">GET</span>
+                          <code className="text-sm text-white font-mono">/api/v1/health</code>
+                        </div>
+                        <p className="text-xs text-slate-400">Ollama 서버 상태 확인</p>
+                      </div>
+                    </div>
+                    <div className="mt-4 p-3 bg-blue-950/30 border border-blue-500/20 rounded-xl">
+                      <p className="text-xs text-blue-300">
+                        <strong>Base URL:</strong>{' '}
+                        <code className="bg-slate-950 px-1.5 py-0.5 rounded text-blue-200">https://abcdllm-api.jrai.space</code>
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
                 <Card className="bg-slate-900/50 border-white/10">
                   <CardHeader>
                     <CardTitle className="text-white flex items-center gap-2">
@@ -334,7 +384,7 @@ export default function ApiKeys() {
                     <div>
                       <h4 className="text-slate-200 font-bold mb-3">Authentication</h4>
                       <p className="text-slate-400 text-sm leading-relaxed mb-4">
-                        All API requests must include your API key in the <code className="bg-slate-950 text-blue-300 px-1.5 py-0.5 rounded">Authorization</code> header as a Bearer token.
+                        모든 API 요청에 <code className="bg-slate-950 text-blue-300 px-1.5 py-0.5 rounded">Authorization</code> 헤더로 API 키를 포함하세요.
                       </p>
                       <div className="bg-slate-950/50 p-4 rounded-xl border border-white/10 font-mono text-sm text-slate-300">
                         <span className="text-slate-500"># Header format</span><br />
@@ -343,14 +393,14 @@ export default function ApiKeys() {
                     </div>
 
                     <div>
-                      <h4 className="text-slate-200 font-bold mb-3">cURL Example</h4>
+                      <h4 className="text-slate-200 font-bold mb-3">cURL</h4>
                       <div className="bg-slate-950/50 p-4 rounded-xl border border-white/10 font-mono text-sm overflow-x-auto">
                         <pre className="text-blue-400">
-{`curl https://api.abcdllm.com/v1/chat/completions \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
+{`curl https://abcdllm-api.jrai.space/v1/chat/completions \\
+  -H "Authorization: Bearer sk-abcd-YOUR_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "model": "llama3:8b",
+    "model": "qwen3:8b",
     "messages": [{"role": "user", "content": "Hello!"}]
   }'`}
                         </pre>
@@ -358,22 +408,136 @@ export default function ApiKeys() {
                     </div>
 
                     <div>
-                      <h4 className="text-slate-200 font-bold mb-3">Python SDK Example</h4>
+                      <h4 className="text-slate-200 font-bold mb-3">Python (OpenAI SDK)</h4>
                       <div className="bg-slate-950/50 p-4 rounded-xl border border-white/10 font-mono text-sm overflow-x-auto">
                         <pre className="text-emerald-400">
-{`import openai
+{`from openai import OpenAI
 
-client = openai.OpenAI(
-    api_key="YOUR_API_KEY",
-    base_url="https://api.abcdllm.com/v1"
+client = OpenAI(
+    api_key="sk-abcd-YOUR_KEY",
+    base_url="https://abcdllm-api.jrai.space/v1"
 )
 
-response = client.chat.completions.create(
-    model="llama3:8b",
+res = client.chat.completions.create(
+    model="qwen3:8b",
     messages=[{"role": "user", "content": "Hello!"}]
-)`}
+)
+print(res.choices[0].message.content)`}
                         </pre>
                       </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-slate-200 font-bold mb-3">JavaScript (fetch)</h4>
+                      <div className="bg-slate-950/50 p-4 rounded-xl border border-white/10 font-mono text-sm overflow-x-auto">
+                        <pre className="text-amber-400">
+{`const res = await fetch(
+  "https://abcdllm-api.jrai.space/v1/chat/completions",
+  {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer sk-abcd-YOUR_KEY",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "qwen3:8b",
+      messages: [{ role: "user", content: "Hello!" }],
+    }),
+  }
+);
+const data = await res.json();
+console.log(data.choices[0].message.content);`}
+                        </pre>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* n8n Integration Guide */}
+                <Card className="bg-gradient-to-br from-[#1a0a2e]/50 to-slate-900/50 border-purple-500/20">
+                  <CardHeader>
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <Zap className="w-6 h-6 text-[#ff6d5a]" />
+                      n8n Integration
+                    </CardTitle>
+                    <CardDescription>n8n 워크플로우에서 abcdLLM을 사용하는 방법</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div>
+                      <h4 className="text-slate-200 font-bold mb-3">방법 1: OpenAI Chat Model 노드 (추천)</h4>
+                      <p className="text-slate-400 text-sm mb-3">
+                        n8n의 <code className="bg-slate-950 text-purple-300 px-1.5 py-0.5 rounded">OpenAI Chat Model</code> 노드를 그대로 사용할 수 있습니다.
+                      </p>
+                      <div className="bg-slate-950/50 p-4 rounded-xl border border-white/10 space-y-3 text-sm">
+                        <div className="flex items-start gap-3">
+                          <span className="bg-purple-600/20 text-purple-400 text-xs font-bold px-2 py-0.5 rounded shrink-0">1</span>
+                          <div>
+                            <p className="text-white font-medium">Credentials 설정</p>
+                            <p className="text-slate-400 text-xs mt-1">
+                              OpenAI API Credential 생성 → API Key에 <code className="text-purple-300">sk-abcd-YOUR_KEY</code> 입력
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <span className="bg-purple-600/20 text-purple-400 text-xs font-bold px-2 py-0.5 rounded shrink-0">2</span>
+                          <div>
+                            <p className="text-white font-medium">Base URL 변경</p>
+                            <p className="text-slate-400 text-xs mt-1">
+                              Credential 편집 → <strong>Override Base URL</strong> 체크 →{' '}
+                              <code className="text-purple-300">https://abcdllm-api.jrai.space/v1</code> 입력
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <span className="bg-purple-600/20 text-purple-400 text-xs font-bold px-2 py-0.5 rounded shrink-0">3</span>
+                          <div>
+                            <p className="text-white font-medium">모델 지정</p>
+                            <p className="text-slate-400 text-xs mt-1">
+                              Model 필드에 <code className="text-purple-300">qwen3:8b</code> 등 사용할 모델명 직접 입력
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-slate-200 font-bold mb-3">방법 2: HTTP Request 노드</h4>
+                      <div className="bg-slate-950/50 p-4 rounded-xl border border-white/10 font-mono text-sm overflow-x-auto">
+                        <pre className="text-[#ff6d5a]">
+{`// HTTP Request 노드 설정
+Method: POST
+URL: https://abcdllm-api.jrai.space/v1/chat/completions
+
+// Headers
+Authorization: Bearer sk-abcd-YOUR_KEY
+Content-Type: application/json
+
+// Body (JSON)
+{
+  "model": "qwen3:8b",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a helpful assistant."
+    },
+    {
+      "role": "user",
+      "content": "{{ $json.input }}"
+    }
+  ]
+}
+
+// 응답에서 텍스트 추출
+{{ $json.choices[0].message.content }}`}
+                        </pre>
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-amber-950/30 border border-amber-500/20 rounded-xl">
+                      <p className="text-xs text-amber-300">
+                        <strong>Tip:</strong> AI Agent 노드에서도 OpenAI Chat Model을 Sub-Node로 연결하면 동일하게 사용 가능합니다.
+                        Tool 호출, 메모리 등 n8n AI 기능을 모두 활용할 수 있습니다.
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
@@ -428,6 +592,41 @@ response = client.chat.completions.create(
                       <span className="font-mono text-amber-400 shrink-0 w-12">403</span>
                       <span className="text-slate-400 text-right">Forbidden. User IP is not whitelisted.</span>
                     </div>
+                    <div className="flex justify-between items-start">
+                      <span className="font-mono text-orange-400 shrink-0 w-12">502</span>
+                      <span className="text-slate-400 text-right">Ollama server is unreachable.</span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Response Format */}
+                <Card className="bg-slate-900/50 border-white/10">
+                  <CardHeader>
+                    <CardTitle className="text-white text-sm">Response Format</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="bg-slate-950/50 p-3 rounded-xl border border-white/10 font-mono text-[11px] overflow-x-auto">
+                      <pre className="text-slate-300">
+{`{
+  "id": "chatcmpl-abc123",
+  "object": "chat.completion",
+  "model": "qwen3:8b",
+  "choices": [{
+    "index": 0,
+    "message": {
+      "role": "assistant",
+      "content": "응답 내용"
+    },
+    "finish_reason": "stop"
+  }],
+  "usage": {
+    "prompt_tokens": 19,
+    "completion_tokens": 50,
+    "total_tokens": 69
+  }
+}`}
+                      </pre>
+                    </div>
                   </CardContent>
                 </Card>
 
@@ -437,11 +636,8 @@ response = client.chat.completions.create(
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-slate-400 leading-relaxed">
-                      Encountering issues? Contact the admin team at <span className="text-blue-400">support@abcdllm.com</span>.
+                      문의사항은 관리자에게 연락하세요.
                     </p>
-                    <Button className="w-full mt-4 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold uppercase tracking-widest">
-                      Open Support Ticket
-                    </Button>
                   </CardContent>
                 </Card>
               </div>
