@@ -1,19 +1,21 @@
 import { Message, ModelInfo } from '../types';
 
-const OLLAMA_BASE_URL = 'http://localhost:11434';
+const OLLAMA_BASE_URL = import.meta.env.VITE_API_URL || 'http://abcdllm.prod.ahto.city';
 
 export async function ollamaChat(
   model: string,
   messages: Message[],
   options?: { temperature?: number }
 ): Promise<string> {
-  const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
+  const response = await fetch(`${OLLAMA_BASE_URL}/api/v1/chat`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('apiKey') || ''}`
+    },
     body: JSON.stringify({
       model,
       messages: messages.map(m => ({ role: m.role, content: m.content })),
-      stream: false,
       options: options ? { temperature: options.temperature } : undefined,
     }),
   });
@@ -27,7 +29,11 @@ export async function ollamaChat(
 }
 
 export async function ollamaListModels(): Promise<ModelInfo[]> {
-  const response = await fetch(`${OLLAMA_BASE_URL}/api/tags`);
+  const response = await fetch(`${OLLAMA_BASE_URL}/api/v1/models`, {
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('apiKey') || ''}`
+    }
+  });
 
   if (!response.ok) {
     throw new Error(`Ollama list models failed: ${response.status}`);
@@ -45,7 +51,10 @@ export async function ollamaListModels(): Promise<ModelInfo[]> {
 export async function ollamaShowModel(name: string): Promise<any> {
   const response = await fetch(`${OLLAMA_BASE_URL}/api/show`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('apiKey') || ''}`
+    },
     body: JSON.stringify({ name }),
   });
 
@@ -79,7 +88,7 @@ export async function getAdminInsights(stats: any): Promise<string> {
 
 export async function ollamaHealthCheck(): Promise<boolean> {
   try {
-    const response = await fetch(OLLAMA_BASE_URL, { signal: AbortSignal.timeout(3000) });
+    const response = await fetch(`${OLLAMA_BASE_URL}/api/health`, { signal: AbortSignal.timeout(3000) });
     return response.ok;
   } catch {
     return false;
