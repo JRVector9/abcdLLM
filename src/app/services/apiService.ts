@@ -139,6 +139,12 @@ export async function regenerateKey(id: string): Promise<{ plainKey: string }> {
   return res.json();
 }
 
+export async function revealKey(id: string): Promise<{ key: string }> {
+  const res = await authFetch(`/keys/${id}/reveal`);
+  if (!res.ok) throw new Error('Failed to reveal key');
+  return res.json();
+}
+
 // ─── Ollama Proxy ──────────────────────────────────────────────
 
 export async function chat(model: string, messages: Message[], options?: { temperature?: number }): Promise<string> {

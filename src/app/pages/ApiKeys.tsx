@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ApiKeyEntry } from '../types';
-import { getKeys, createKey, deleteKey as apiDeleteKey } from '../services/apiService';
+import { getKeys, createKey, deleteKey as apiDeleteKey, revealKey } from '../services/apiService';
 
 export default function ApiKeys() {
   const [keys, setKeys] = useState<(ApiKeyEntry & { plainKey?: string })[]>([]);
@@ -52,6 +52,29 @@ export default function ApiKeys() {
       toast.error('API 키 목록을 불러올 수 없습니다');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const toggleKeyVisibility = async (keyId: string) => {
+    const isCurrentlyVisible = showKeys[keyId];
+
+    if (!isCurrentlyVisible) {
+      // Showing the key - fetch full key from backend
+      try {
+        const { key: fullKey } = await revealKey(keyId);
+        // Update the key in state with the full key
+        setKeys(prevKeys =>
+          prevKeys.map(k =>
+            k.id === keyId ? { ...k, plainKey: fullKey } : k
+          )
+        );
+        setShowKeys(prev => ({ ...prev, [keyId]: true }));
+      } catch (error) {
+        toast.error('전체 키를 불러올 수 없습니다');
+      }
+    } else {
+      // Hiding the key - just toggle visibility
+      setShowKeys(prev => ({ ...prev, [keyId]: false }));
     }
   };
 
@@ -281,7 +304,7 @@ export default function ApiKeys() {
                                 {showKeys[k.id] ? (k.plainKey || k.key) : maskKey(k.plainKey || k.key)}
                               </code>
                               <div className="flex items-center gap-2 shrink-0">
-                                <Button size="sm" variant="ghost" onClick={() => setShowKeys(prev => ({ ...prev, [k.id]: !prev[k.id] }))} className="text-slate-400 hover:text-white">
+                                <Button size="sm" variant="ghost" onClick={() => toggleKeyVisibility(k.id)} className="text-slate-400 hover:text-white">
                                   {showKeys[k.id] ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                                 </Button>
                                 <Button size="sm" variant="ghost" onClick={() => copyToClipboard(k.plainKey || k.key, k.id)} className="text-slate-400 hover:text-white">
