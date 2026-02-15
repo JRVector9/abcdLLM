@@ -6,11 +6,18 @@ COPY . .
 RUN npm run build
 
 FROM nginx:alpine
+
+# Install gettext for envsubst
+RUN apk add --no-cache gettext
+
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+COPY docker-entrypoint.sh /docker-entrypoint.sh
 
 # Set default value for BACKEND_HOST if not provided
 ENV BACKEND_HOST=app-calculate-open-source-application-wc8qgt
 
+RUN chmod +x /docker-entrypoint.sh
+
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
