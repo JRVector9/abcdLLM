@@ -30,6 +30,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [user, setUser] = useState<User | null>(getStoredUser());
 
   useEffect(() => {
+    // Only verify auth on mount, not on every route change
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
     getMe()
       .then((u) => {
         setUser(u);
@@ -39,7 +46,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         clearAuth();
         navigate('/login');
       });
-  }, [location.pathname]);
+  }, []); // Empty dependency array - only run on mount
 
   const isAdmin = user?.role === UserRole.ADMIN || user?.role === ('admin' as any);
 
