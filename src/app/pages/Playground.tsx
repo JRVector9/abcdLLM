@@ -111,17 +111,12 @@ export default function Playground() {
     setIsComposing(true);
   };
 
-  const handleCompositionEnd = (e: React.CompositionEvent<HTMLTextAreaElement>) => {
+  const handleCompositionEnd = () => {
     setIsComposing(false);
-    // Composition 완료 시 최종 값으로 업데이트
-    setInput(e.currentTarget.value);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    // Composition 중이 아닐 때만 업데이트 (영어, 숫자 등)
-    if (!isComposing) {
-      setInput(e.target.value);
-    }
+    setInput(e.target.value);
   };
 
   const clearChat = () => {
