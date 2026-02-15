@@ -111,8 +111,17 @@ export default function Playground() {
     setIsComposing(true);
   };
 
-  const handleCompositionEnd = () => {
+  const handleCompositionEnd = (e: React.CompositionEvent<HTMLTextAreaElement>) => {
     setIsComposing(false);
+    // Composition 완료 시 최종 값으로 업데이트
+    setInput(e.currentTarget.value);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    // Composition 중이 아닐 때만 업데이트 (영어, 숫자 등)
+    if (!isComposing) {
+      setInput(e.target.value);
+    }
   };
 
   const clearChat = () => {
@@ -324,7 +333,7 @@ export default function Playground() {
               <div className="flex gap-2">
                 <Textarea
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={handleInputChange}
                   onKeyDown={handleKeyPress}
                   onCompositionStart={handleCompositionStart}
                   onCompositionEnd={handleCompositionEnd}
