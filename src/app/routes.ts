@@ -4,8 +4,13 @@ import type { ComponentType } from "react";
 type PageModule = { default: ComponentType };
 
 const lazyPage = (importPage: () => Promise<PageModule>) => async () => {
-  const page = await importPage();
-  return { Component: page.default };
+  try {
+    const page = await importPage();
+    return { Component: page.default };
+  } catch {
+    window.location.reload();
+    return { Component: (() => null) as ComponentType };
+  }
 };
 
 export const router = createBrowserRouter([
