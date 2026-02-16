@@ -247,7 +247,6 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <CardTitle className="text-white">Ollama 서버 상태</CardTitle>
-                  <CardDescription>localhost:11434</CardDescription>
                 </div>
               </div>
             </CardHeader>
