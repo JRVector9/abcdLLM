@@ -225,11 +225,11 @@ export default function Dashboard() {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-slate-400">API Endpoint</span>
-                    <span className="text-blue-400">api.abcdllm.com</span>
+                    <span className="text-blue-400">abcdllm-api.brut.bot</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-slate-400">Default Model</span>
-                    <span className="text-slate-200">llama3:8b</span>
+                    <span className="text-slate-200">qwen3:8b</span>
                   </div>
                 </div>
               </CardContent>
