@@ -17,16 +17,6 @@ export default defineConfig({
     },
   },
 
-  build: {
-    rollupOptions: {
-      output: {
-        entryFileNames: 'assets/[name]-v2-[hash].js',
-        chunkFileNames: 'assets/[name]-v2-[hash].js',
-        assetFileNames: 'assets/[name]-v2-[hash][extname]',
-      },
-    },
-  },
-
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
 

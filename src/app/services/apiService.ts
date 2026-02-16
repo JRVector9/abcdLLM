@@ -365,14 +365,3 @@ export async function adminUpdateOllamaSettings(ollamaBaseUrl: string): Promise<
   if (!res.ok) throw new Error('Failed to update Ollama settings');
   return res.json();
 }
-
-export async function adminPullModel(name: string): Promise<void> {
-  const res = await authFetch('/admin/models/pull', {
-    method: 'POST',
-    body: JSON.stringify({ name }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || 'Failed to pull model');
-  }
-}

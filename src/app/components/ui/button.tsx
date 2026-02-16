@@ -49,7 +49,6 @@ function Button({
   return (
     <Comp
       data-slot="button"
-      data-build="v2"
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />

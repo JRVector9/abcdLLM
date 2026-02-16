@@ -29,10 +29,10 @@ export interface ApiKeyEntry {
   dailyTokens: number;
   totalTokens: number;
   // Actual usage
-  usedRequests?: number;
-  usedTokens?: number;
-  totalUsedTokens?: number;
-  lastResetDate?: string;
+  usedRequests: number;
+  usedTokens: number;
+  totalUsedTokens: number;
+  lastResetDate: string;
 }
 
 export interface SecurityEvent {

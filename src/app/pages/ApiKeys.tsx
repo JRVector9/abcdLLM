@@ -46,42 +46,13 @@ export default function ApiKeys() {
   const loadKeys = async () => {
     try {
       const data = await getKeys();
-      setKeys(
-        data.map((key: any) => ({
-          ...key,
-          dailyRequests: key.dailyRequests ?? key.daily_requests ?? 0,
-          dailyTokens: key.dailyTokens ?? key.daily_tokens ?? 0,
-          totalTokens: key.totalTokens ?? key.total_tokens ?? 0,
-          usedRequests: key.usedRequests ?? key.used_requests ?? 0,
-          usedTokens: key.usedTokens ?? key.used_tokens ?? 0,
-          totalUsedTokens: key.totalUsedTokens ?? key.total_used_tokens ?? 0,
-        }))
-      );
+      setKeys(data);
     } catch {
       toast.error('API 키 목록을 불러올 수 없습니다');
     } finally {
       setLoading(false);
     }
   };
-
-  const getUsedRequests = (key: ApiKeyEntry) => key.usedRequests ?? 0;
-  const getUsedTokens = (key: ApiKeyEntry) => key.usedTokens ?? 0;
-  const formatRecentDateTime = (value?: string) => {
-    if (!value) return '-';
-    const dt = new Date(value);
-    if (Number.isNaN(dt.getTime())) return '-';
-    const mm = String(dt.getMonth() + 1).padStart(2, '0');
-    const dd = String(dt.getDate()).padStart(2, '0');
-    const yyyy = String(dt.getFullYear());
-    const hh = String(dt.getHours()).padStart(2, '0');
-    const min = String(dt.getMinutes()).padStart(2, '0');
-    return `${mm}.${dd}.${yyyy}|${hh}:${min}`;
-  };
-  const latestUsedAt = keys.length
-    ? keys.reduce((latest, key) => {
-        return new Date(key.createdAt).getTime() > new Date(latest.createdAt).getTime() ? key : latest;
-      }).createdAt
-    : undefined;
 
   const toggleKeyVisibility = async (keyId: string) => {
     const isCurrentlyVisible = showKeys[keyId];
@@ -189,12 +160,12 @@ export default function ApiKeys() {
               </Card>
               <Card className="bg-slate-900/50 border-white/10">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-200">오늘 사용 요청</CardTitle>
+                  <CardTitle className="text-sm font-medium text-slate-200">오늘 요청 수</CardTitle>
                   <Activity className="size-4 text-purple-500" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-white">
-                    {keys.reduce((sum, k) => sum + getUsedRequests(k), 0).toLocaleString()}
+                    {keys.reduce((sum, k) => sum + (k.usedRequests ?? 0), 0).toLocaleString()}
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
                     / {keys.reduce((sum, k) => sum + k.dailyRequests, 0).toLocaleString()} limit
@@ -203,13 +174,16 @@ export default function ApiKeys() {
               </Card>
               <Card className="bg-slate-900/50 border-white/10">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-200">가장 최근 사용</CardTitle>
+                  <CardTitle className="text-sm font-medium text-slate-200">총 사용 토큰</CardTitle>
                   <Calendar className="size-4 text-green-500" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-white">
-                    {formatRecentDateTime(latestUsedAt)}
+                    {keys.reduce((sum, k) => sum + (k.totalUsedTokens ?? 0), 0).toLocaleString()}
                   </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    / {keys.reduce((sum, k) => sum + k.totalTokens, 0).toLocaleString()} limit
+                  </p>
                 </CardContent>
               </Card>
             </div>
@@ -346,52 +320,31 @@ export default function ApiKeys() {
                           </div>
                         </div>
 
-                        <div className="w-full md:w-[300px] space-y-3">
-                          <div className="bg-slate-950/50 rounded-lg p-4 border border-white/10 space-y-3">
-                            <div className="space-y-1">
-                              <div className="flex justify-between text-[11px]">
-                                <span className="text-slate-400">요청 사용량</span>
-                                <span className="text-white font-semibold">
-                                  {getUsedRequests(k).toLocaleString()} / {k.dailyRequests.toLocaleString()}
-                                </span>
-                              </div>
-                              <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-blue-500"
-                                  style={{ width: `${Math.min(100, Math.round((getUsedRequests(k) / Math.max(1, k.dailyRequests)) * 100))}%` }}
-                                />
+                        <div className="flex flex-col md:items-end justify-between min-w-[200px]">
+                          <div className="grid grid-cols-3 md:flex md:flex-col gap-4 text-right">
+                            <div>
+                              <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Daily Req</div>
+                              <div className="text-sm font-bold text-white">
+                                {(k.usedRequests ?? 0).toLocaleString()}
+                                <span className="text-slate-500 font-normal"> / {k.dailyRequests}</span>
                               </div>
                             </div>
-                            <div className="space-y-1">
-                              <div className="flex justify-between text-[11px]">
-                                <span className="text-slate-400">토큰 사용량</span>
-                                <span className="text-white font-semibold">
-                                  {getUsedTokens(k).toLocaleString()} / {k.dailyTokens.toLocaleString()}
-                                </span>
-                              </div>
-                              <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-violet-500"
-                                  style={{ width: `${Math.min(100, Math.round((getUsedTokens(k) / Math.max(1, k.dailyTokens)) * 100))}%` }}
-                                />
+                            <div>
+                              <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Daily Tokens</div>
+                              <div className="text-sm font-bold text-white">
+                                {(k.usedTokens ?? 0).toLocaleString()}
+                                <span className="text-slate-500 font-normal"> / {k.dailyTokens.toLocaleString()}</span>
                               </div>
                             </div>
-                            <div className="space-y-1">
-                              <div className="flex justify-between text-[11px]">
-                                <span className="text-slate-400">총 사용량</span>
-                                <span className="text-emerald-400 font-semibold">
-                                  {(k.totalUsedTokens ?? 0).toLocaleString()} / {k.totalTokens.toLocaleString()}
-                                </span>
-                              </div>
-                              <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-emerald-500"
-                                  style={{ width: `${Math.min(100, Math.round(((k.totalUsedTokens ?? 0) / Math.max(1, k.totalTokens)) * 100))}%` }}
-                                />
+                            <div>
+                              <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Total Used</div>
+                              <div className="text-sm font-bold text-emerald-400">
+                                {(k.totalUsedTokens ?? 0).toLocaleString()}
+                                <span className="text-slate-500 font-normal"> / {k.totalTokens.toLocaleString()}</span>
                               </div>
                             </div>
                           </div>
-                          <Button size="sm" variant="ghost" onClick={() => handleDeleteKey(k.id)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10">
+                          <Button size="sm" variant="ghost" onClick={() => handleDeleteKey(k.id)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10 mt-4">
                             <Trash2 className="size-4 mr-2" />
                             삭제
                           </Button>
