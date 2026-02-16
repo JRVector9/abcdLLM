@@ -43,8 +43,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         localStorage.setItem('user', JSON.stringify(u));
       })
       .catch(() => {
-        clearAuth();
-        navigate('/login');
+        // authFetch already handles real 401 (clears auth + hard redirect).
+        // If we land here it's a non-auth error (502 / network).
+        // Keep the stored user and don't log out.
       });
   }, []); // Empty dependency array - only run on mount
 
