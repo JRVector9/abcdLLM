@@ -1,5 +1,6 @@
 import { createBrowserRouter } from "react-router";
-import type { ComponentType } from "react";
+import { createElement, type ComponentType } from "react";
+import RouteErrorFallback from "./components/RouteErrorFallback";
 
 type PageModule = { default: ComponentType };
 const CHUNK_RELOAD_KEY = "__chunk_reload_once__";
@@ -37,37 +38,46 @@ export const router = createBrowserRouter([
   {
     path: "/",
     lazy: lazyPage(() => import("./pages/Landing")),
+    errorElement: createElement(RouteErrorFallback),
   },
   {
     path: "/login",
     lazy: lazyPage(() => import("./pages/Login")),
+    errorElement: createElement(RouteErrorFallback),
   },
   {
     path: "/dashboard",
     lazy: lazyPage(() => import("./pages/Dashboard")),
+    errorElement: createElement(RouteErrorFallback),
   },
   {
     path: "/api-keys",
     lazy: lazyPage(() => import("./pages/ApiKeys")),
+    errorElement: createElement(RouteErrorFallback),
   },
   {
     path: "/playground",
     lazy: lazyPage(() => import("./pages/Playground")),
+    errorElement: createElement(RouteErrorFallback),
   },
   {
     path: "/usage",
     lazy: lazyPage(() => import("./pages/Usage")),
+    errorElement: createElement(RouteErrorFallback),
   },
   {
     path: "/admin",
     lazy: lazyPage(() => import("./pages/Admin")),
+    errorElement: createElement(RouteErrorFallback),
   },
   {
     path: "/api-application",
     lazy: lazyPage(() => import("./pages/ApiApplication")),
+    errorElement: createElement(RouteErrorFallback),
   },
   {
     path: "/settings",
     lazy: lazyPage(() => import("./pages/Settings")),
+    errorElement: createElement(RouteErrorFallback),
   },
 ]);
