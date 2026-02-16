@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -13,15 +13,80 @@ import {
   ArrowRight,
   Clock,
   Server,
-  Key
 } from 'lucide-react';
 import { Link } from 'react-router';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { User, UsageStat } from '../types';
-import { getDashboard, ollamaHealth, getStoredUser } from '../services/apiService';
+import { UsageStat } from '../types';
+import { getDashboard, DashboardData, ollamaHealth } from '../services/apiService';
+import { useSWR } from '../hooks/useSWR';
 
+// ─── Inline SVG Area Chart ────────────────────────────────────
+const CHART_H = 260;
+const CHART_PAD = { top: 20, right: 16, bottom: 32, left: 48 };
+
+function toPath(points: { x: number; y: number }[]): string {
+  return points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
+}
+
+function AreaChartSVG({ data, dataKey, color }: { data: UsageStat[]; dataKey: string; color: string }) {
+  const totalW = 400;
+  const innerW = totalW - CHART_PAD.left - CHART_PAD.right;
+  const innerH = CHART_H - CHART_PAD.top - CHART_PAD.bottom;
+  const values = data.map(d => (d[dataKey as keyof UsageStat] as number) ?? 0);
+  const max = Math.max(...values, 1);
+  const step = data.length > 1 ? innerW / (data.length - 1) : innerW;
+
+  const points = values.map((v, i) => ({
+    x: CHART_PAD.left + i * step,
+    y: CHART_PAD.top + innerH - (v / max) * innerH,
+  }));
+
+  const areaPath = `${toPath(points)} L${points[points.length - 1].x},${CHART_PAD.top + innerH} L${points[0].x},${CHART_PAD.top + innerH} Z`;
+  const ticks = [0, Math.round(max / 2), max];
+
+  return (
+    <svg viewBox={`0 0 ${totalW} ${CHART_H}`} className="w-full" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Usage chart">
+      {ticks.map(t => {
+        const y = CHART_PAD.top + innerH - (t / max) * innerH;
+        return (
+          <g key={t}>
+            <line x1={CHART_PAD.left} y1={y} x2={totalW - CHART_PAD.right} y2={y} stroke="#ffffff10" strokeDasharray="4 4" />
+            <text x={CHART_PAD.left - 6} y={y + 4} textAnchor="end" fill="#94a3b8" fontSize="10">{t.toLocaleString()}</text>
+          </g>
+        );
+      })}
+      <defs>
+        <linearGradient id="grad-dash" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.3} />
+          <stop offset="100%" stopColor={color} stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <path d={areaPath} fill="url(#grad-dash)" />
+      <path d={toPath(points)} fill="none" stroke={color} strokeWidth={2} />
+      {points.map((p, i) => (
+        <g key={i}>
+          <circle cx={p.x} cy={p.y} r={3} fill={color} />
+          <text x={p.x} y={CHART_PAD.top + innerH + 16} textAnchor="middle" fill="#94a3b8" fontSize="9">
+            {data[i].date}
+          </text>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+function ChartSkeleton() {
+  return (
+    <div className="h-[260px] bg-slate-800/30 rounded-lg animate-pulse flex items-end justify-around px-12 pb-8 gap-2">
+      {[40, 65, 50, 80, 60, 75, 55].map((h, i) => (
+        <div key={i} className="bg-slate-700/40 rounded-t" style={{ width: '10%', height: `${h}%` }} />
+      ))}
+    </div>
+  );
+}
+
+// ─── Progress Bar ─────────────────────────────────────────────
 const ProgressBar = ({ label, current, total, colorClass = "bg-blue-500" }: { label: string; current: number; total: number; colorClass?: string }) => {
-  const percentage = Math.min(100, Math.round((current / total) * 100));
+  const percentage = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
   return (
     <div className="space-y-2">
       <div className="flex justify-between items-center text-sm">
@@ -38,24 +103,22 @@ const ProgressBar = ({ label, current, total, colorClass = "bg-blue-500" }: { la
   );
 };
 
+// ─── Page ─────────────────────────────────────────────────────
+
+const dashboardFetcher = () => getDashboard();
+
 export default function Dashboard() {
-  const [user, setUser] = useState<User | null>(getStoredUser());
-  const [recentUsage, setRecentUsage] = useState<UsageStat[]>([]);
-  const [activeModels, setActiveModels] = useState(0);
-  const [totalRequests, setTotalRequests] = useState(0);
+  const { data, isLoading, isValidating } = useSWR<DashboardData>('dashboard', dashboardFetcher);
   const [ollamaOnline, setOllamaOnline] = useState(false);
   const [resetTime, setResetTime] = useState('');
 
-  useEffect(() => {
-    getDashboard()
-      .then((data) => {
-        setUser(data.user);
-        setRecentUsage(data.recentUsage);
-        setActiveModels(data.activeModels);
-        setTotalRequests(data.totalRequests);
-      })
-      .catch(() => {});
+  const user = data?.user ?? null;
+  const recentUsage = data?.recentUsage ?? [];
+  const activeModels = data?.activeModels ?? 0;
+  const totalRequests = data?.totalRequests ?? 0;
+  const uptime = data?.uptime ?? '';
 
+  useEffect(() => {
     ollamaHealth().then(setOllamaOnline);
   }, []);
 
@@ -74,9 +137,10 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  const avgResponseTime = recentUsage.length > 0
-    ? Math.round(recentUsage.reduce((sum, u) => sum + u.responseTime, 0) / recentUsage.length)
-    : 0;
+  const avgResponseTime = useMemo(() => {
+    if (recentUsage.length === 0) return 0;
+    return Math.round(recentUsage.reduce((sum, u) => sum + u.responseTime, 0) / recentUsage.length);
+  }, [recentUsage]);
 
   return (
     <DashboardLayout>
@@ -89,9 +153,17 @@ export default function Dashboard() {
             </h1>
             <p className="text-slate-400">Real-time status of your API allocations and usage.</p>
           </div>
-          <div className="flex items-center gap-2 bg-slate-800/80 px-4 py-2 rounded-lg border border-white/10 shadow-lg">
-            <Calendar className="w-4 h-4 text-blue-400" />
-            <span className="text-sm font-medium text-white">Reset in {resetTime}</span>
+          <div className="flex items-center gap-3">
+            {isValidating && !isLoading && (
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                갱신 중
+              </div>
+            )}
+            <div className="flex items-center gap-2 bg-slate-800/80 px-4 py-2 rounded-lg border border-white/10 shadow-lg">
+              <Calendar className="w-4 h-4 text-blue-400" />
+              <span className="text-sm font-medium text-white">Reset in {resetTime}</span>
+            </div>
           </div>
         </div>
 
@@ -103,7 +175,10 @@ export default function Dashboard() {
               <Zap className="size-4 text-blue-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-white">{user?.dailyUsage?.toLocaleString() || '0'}</div>
+              <div className="text-3xl font-bold text-white">
+                {(user?.dailyUsage ?? 0).toLocaleString()}
+                <span className="text-lg text-slate-500 font-normal"> / {(user?.dailyQuota ?? 0).toLocaleString()}</span>
+              </div>
             </CardContent>
           </Card>
 
@@ -125,7 +200,7 @@ export default function Dashboard() {
             <CardContent>
               <div className="text-3xl font-bold text-white capitalize">{user?.status || 'Active'}</div>
               <p className="text-xs text-slate-400 mt-1">
-                {user?.accessCount?.toLocaleString() || '0'} total calls
+                {(user?.accessCount ?? 0).toLocaleString()} total calls
               </p>
             </CardContent>
           </Card>
@@ -146,37 +221,19 @@ export default function Dashboard() {
           {/* Usage History Chart */}
           <Card className="lg:col-span-2 bg-slate-900/50 border-white/10">
             <CardHeader>
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-blue-400" />
-                  <CardTitle className="text-white">Usage History (Tokens)</CardTitle>
-                </div>
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-blue-400" />
+                <CardTitle className="text-white">Usage History (Tokens)</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={recentUsage}>
-                  <defs>
-                    <linearGradient id="colorTokens" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
-                  <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} />
-                  <YAxis stroke="#94a3b8" fontSize={12} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#1e293b',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      borderRadius: '8px',
-                      color: '#fff'
-                    }}
-                    itemStyle={{ color: '#818cf8' }}
-                  />
-                  <Area type="monotone" dataKey="tokens" stroke="#3b82f6" fillOpacity={1} fill="url(#colorTokens)" />
-                </AreaChart>
-              </ResponsiveContainer>
+              {isLoading ? <ChartSkeleton /> : recentUsage.length > 0 ? (
+                <AreaChartSVG data={recentUsage} dataKey="tokens" color="#3b82f6" />
+              ) : (
+                <div className="h-[260px] flex items-center justify-center text-slate-500 text-sm">
+                  아직 사용 기록이 없습니다
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -187,16 +244,16 @@ export default function Dashboard() {
                 <CardTitle className="text-white">Quota Tracking</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {user && (
+                {user ? (
                   <>
                     <ProgressBar
-                      label="Daily Limit"
+                      label="Daily Token Limit"
                       current={user.dailyUsage}
                       total={user.dailyQuota}
                       colorClass={user.dailyUsage > user.dailyQuota * 0.9 ? "bg-red-500" : "bg-blue-500"}
                     />
                     <ProgressBar
-                      label="Total Monthly Limit"
+                      label="Total Usage Cap"
                       current={user.usage}
                       total={user.totalQuota}
                       colorClass="bg-emerald-500"
@@ -208,7 +265,12 @@ export default function Dashboard() {
                       </Link>
                     </div>
                   </>
-                )}
+                ) : isLoading ? (
+                  <div className="space-y-4 animate-pulse">
+                    <div className="h-8 bg-slate-800/50 rounded" />
+                    <div className="h-8 bg-slate-800/50 rounded" />
+                  </div>
+                ) : null}
               </CardContent>
             </Card>
 
@@ -217,7 +279,7 @@ export default function Dashboard() {
                 <CardTitle className="text-white">Endpoint Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="bg-slate-950/50 p-4 rounded-lg border border-white/10 font-mono text-sm relative group overflow-hidden">
+                <div className="bg-slate-950/50 p-4 rounded-lg border border-white/10 font-mono text-sm">
                   <span className="text-slate-400">
                     {user?.apiKey ? user.apiKey.replace(/(.{10}).+(.{4})/, '$1••••••••$2') : 'sk-abcd-••••••••'}
                   </span>
@@ -247,7 +309,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <CardTitle className="text-white">Ollama 서버 상태</CardTitle>
-                  <CardDescription>localhost:11434</CardDescription>
+                  <CardDescription>LLM Inference Engine</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -259,9 +321,6 @@ export default function Dashboard() {
                     {ollamaOnline ? '연결됨' : '오프라인'}
                   </span>
                 </div>
-                <Button variant="outline" size="sm" className="text-white border-white/20 hover:bg-white/10">
-                  상세 보기
-                </Button>
               </div>
               <div className="mt-4 pt-4 border-t border-white/10 grid grid-cols-2 gap-4 text-sm">
                 <div>
@@ -270,7 +329,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p className="text-slate-400">업타임</p>
-                  <p className="text-white font-medium mt-1">-</p>
+                  <p className="text-white font-medium mt-1">{uptime || '-'}</p>
                 </div>
               </div>
             </CardContent>
@@ -291,7 +350,7 @@ export default function Dashboard() {
             <CardContent className="space-y-3">
               <Link to="/api-keys">
                 <Button variant="ghost" className="w-full justify-between text-white hover:bg-white/10">
-                  <span>새 API 키 생성</span>
+                  <span>API 키 관리</span>
                   <ArrowRight className="size-4" />
                 </Button>
               </Link>

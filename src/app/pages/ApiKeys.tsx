@@ -197,15 +197,17 @@ export default function ApiKeys() {
 
             {/* Create button or form */}
             {!isCreating ? (
-              <div className="flex justify-end">
-                <Button
-                  onClick={() => setIsCreating(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  <Plus className="size-4 mr-2" />
-                  Create New Key
-                </Button>
-              </div>
+              keys.length === 0 ? (
+                <div className="flex justify-end">
+                  <Button
+                    onClick={() => setIsCreating(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    <Plus className="size-4 mr-2" />
+                    Create New Key
+                  </Button>
+                </div>
+              ) : null
             ) : (
               <Card className="bg-slate-900/50 border-blue-500/30">
                 <CardHeader>

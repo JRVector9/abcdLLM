@@ -1,12 +1,12 @@
-import { Activity, BookOpen, Code, ShieldCheck, Terminal, Workflow, Globe } from 'lucide-react';
+import { Activity, BookOpen, Code, ShieldCheck, Terminal, Workflow, Globe, Image } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { ApiKeyEntry } from '../../types';
 
 const MODELS = [
-  { name: 'qwen3:8b', desc: 'Qwen3 8B - 빠른 범용 모델' },
-  { name: 'qwen2.5:32b', desc: 'Qwen2.5 32B - 고품질 응답' },
-  { name: 'gemma3:27b', desc: 'Gemma3 27B - 균형잡힌 성능' },
-  { name: 'exaone3.5:7.8b', desc: 'EXAONE 3.5 - 한국어 특화' },
+  { name: 'qwen3:8b', desc: 'Alibaba Qwen3 8B', detail: '빠른 추론, 코딩/수학 강점, 다국어 지원', vision: false },
+  { name: 'qwen2.5:32b', desc: 'Alibaba Qwen2.5 32B', detail: '고품질 텍스트 생성, 복잡한 추론에 최적', vision: false },
+  { name: 'gemma3:27b', desc: 'Google Gemma3 27B', detail: '균형잡힌 성능, 이미지+텍스트 멀티모달 지원', vision: true },
+  { name: 'exaone3.5:7.8b', desc: 'LG EXAONE 3.5 7.8B', detail: '한국어 특화, 한/영 이중언어 최적화', vision: false },
 ];
 
 interface Props {
@@ -262,11 +262,20 @@ print(response.content)`}</pre>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             {MODELS.map((model) => (
-              <div key={model.name} className="bg-slate-950/50 p-3 rounded-lg border border-white/10">
-                <code className="text-xs text-blue-400 font-mono">{model.name}</code>
-                <p className="text-[10px] text-slate-500 mt-1">{model.desc}</p>
+              <div key={model.name} className="bg-slate-950/50 p-4 rounded-lg border border-white/10 space-y-2">
+                <div className="flex items-center justify-between">
+                  <code className="text-sm text-blue-400 font-mono font-bold">{model.name}</code>
+                  {model.vision && (
+                    <span className="flex items-center gap-1 text-[10px] text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded-full border border-purple-500/20">
+                      <Image className="w-3 h-3" />
+                      Vision
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-300 font-medium">{model.desc}</p>
+                <p className="text-[11px] text-slate-500">{model.detail}</p>
               </div>
             ))}
           </div>

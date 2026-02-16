@@ -127,6 +127,7 @@ export interface DashboardData {
   recentUsage: UsageStat[];
   activeModels: number;
   totalRequests: number;
+  uptime: string;
 }
 
 export async function getDashboard(): Promise<DashboardData> {
