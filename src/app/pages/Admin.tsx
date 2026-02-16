@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -43,10 +43,12 @@ import {
   adminGetModelPerformance,
   adminGetInsights,
   listModels,
+  adminPullModel,
   adminGetOllamaSettings,
   adminUpdateOllamaSettings,
 } from '../services/apiService';
 import { User, ModelInfo, SystemMetrics, SecurityEvent, ModelPerformance, UsageStat } from '../types';
+import { toast } from 'sonner';
 
 function MiniLatencyChart({ data }: { data: UsageStat[] }) {
   if (data.length === 0) return <div className="text-sm text-slate-500">No latency data</div>;
@@ -95,6 +97,9 @@ export default function Admin() {
   const [ollamaUrl, setOllamaUrl] = useState<string>('');
   const [ollamaUrlInput, setOllamaUrlInput] = useState<string>('');
   const [isUpdatingOllamaUrl, setIsUpdatingOllamaUrl] = useState(false);
+  const [modelToPull, setModelToPull] = useState<string>('');
+  const [isPullingModel, setIsPullingModel] = useState(false);
+  const [lastModelSyncAt, setLastModelSyncAt] = useState<string>('');
   const [securityLoaded, setSecurityLoaded] = useState(false);
   const [modelsLoaded, setModelsLoaded] = useState(false);
 
@@ -110,23 +115,40 @@ export default function Admin() {
     adminGetSecurityEvents().then(setSecurityEvents).catch(() => {});
   }, [activeTab, securityLoaded]);
 
+  const refreshModelsData = useCallback(async () => {
+    try {
+      const [performance, fetchedModels] = await Promise.all([
+        adminGetModelPerformance().catch(() => []),
+        listModels().catch(() => []),
+      ]);
+      setModelPerformance(performance);
+      if (fetchedModels.length > 0) setLiveModels(fetchedModels);
+      setLastModelSyncAt(new Date().toLocaleTimeString('ko-KR', { hour12: false }));
+    } catch {
+      // noop
+    }
+  }, []);
+
   useEffect(() => {
     if (activeTab !== 'models' || modelsLoaded) return;
     setModelsLoaded(true);
 
-    adminGetModelPerformance().then(setModelPerformance).catch(() => {});
-    listModels()
-      .then((fetched) => {
-        if (fetched.length > 0) setLiveModels(fetched);
-      })
-      .catch(() => {});
+    refreshModelsData();
     adminGetOllamaSettings()
       .then((data) => {
         setOllamaUrl(data.ollamaBaseUrl);
         setOllamaUrlInput(data.ollamaBaseUrl);
       })
       .catch(() => {});
-  }, [activeTab, modelsLoaded]);
+  }, [activeTab, modelsLoaded, refreshModelsData]);
+
+  useEffect(() => {
+    if (activeTab !== 'models') return;
+    const interval = setInterval(() => {
+      refreshModelsData();
+    }, 20000);
+    return () => clearInterval(interval);
+  }, [activeTab, refreshModelsData]);
 
   const filteredUsers = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -151,6 +173,23 @@ export default function Admin() {
       alert('Ollama URL 업데이트 실패: ' + (error as Error).message);
     } finally {
       setIsUpdatingOllamaUrl(false);
+    }
+  };
+
+  const handlePullModel = async () => {
+    const modelName = modelToPull.trim();
+    if (!modelName) return;
+
+    setIsPullingModel(true);
+    try {
+      await adminPullModel(modelName);
+      toast.success(`모델 pull 완료: ${modelName}`);
+      setModelToPull('');
+      await refreshModelsData();
+    } catch (error) {
+      toast.error((error as Error).message || '모델 pull 실패');
+    } finally {
+      setIsPullingModel(false);
     }
   };
 
@@ -540,11 +579,26 @@ export default function Admin() {
                     <HardDrive className="w-6 h-6 text-blue-400" />
                     Ollama Infrastructure Manager
                   </CardTitle>
-                  <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                    <ArrowDownToLine className="w-5 h-5 mr-2" />
-                    Pull New Model
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={modelToPull}
+                      onChange={(e) => setModelToPull(e.target.value)}
+                      placeholder="예: llama3.2:3b"
+                      className="w-52 bg-white/5 border-white/10 text-white"
+                    />
+                    <Button
+                      onClick={handlePullModel}
+                      disabled={isPullingModel || !modelToPull.trim()}
+                      className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
+                    >
+                      <ArrowDownToLine className="w-5 h-5 mr-2" />
+                      {isPullingModel ? 'Pulling...' : 'Pull New Model'}
+                    </Button>
+                  </div>
                 </div>
+                <CardDescription>
+                  로컬 Ollama 모델 목록 자동 동기화 (20초). 마지막 동기화: {lastModelSyncAt || '아직 없음'}
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {liveModels.map(model => (
