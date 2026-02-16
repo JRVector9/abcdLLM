@@ -5,6 +5,8 @@ const USER_KEY = 'user';
 let meCache: User | null = null;
 let meRequest: Promise<User> | null = null;
 
+const API_BASE = import.meta.env.VITE_API_BASE || '';
+
 // ─── Auth helpers ──────────────────────────────────────────────
 
 export function getToken(): string | null {
@@ -40,12 +42,12 @@ async function authFetch(path: string, opts: RequestInit = {}): Promise<Response
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  const res = await fetch(`/api${path}`, { ...opts, headers });
+  const res = await fetch(`${API_BASE}/api${path}`, { ...opts, headers });
 
   // 502 또는 401: 1회 재시도 (일시적 라우팅/DB 장애 대응)
   if (res.status === 502 || res.status === 401) {
     await new Promise(r => setTimeout(r, 500));
-    const retry = await fetch(`/api${path}`, { ...opts, headers });
+    const retry = await fetch(`${API_BASE}/api${path}`, { ...opts, headers });
     // 재시도도 401이면 진짜 인증 실패 → 세션 삭제
     if (retry.status === 401) {
       clearAuth();
@@ -60,7 +62,7 @@ async function authFetch(path: string, opts: RequestInit = {}): Promise<Response
 // ─── Auth ──────────────────────────────────────────────────────
 
 export async function login(email: string, password: string): Promise<{ user: User; token: string }> {
-  const res = await fetch('/api/auth/login', {
+  const res = await fetch(`${API_BASE}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
@@ -75,7 +77,7 @@ export async function login(email: string, password: string): Promise<{ user: Us
 }
 
 export async function signup(email: string, password: string, name: string): Promise<{ user: User; token: string }> {
-  const res = await fetch('/api/auth/signup', {
+  const res = await fetch(`${API_BASE}/api/auth/signup`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, passwordConfirm: password, name }),
