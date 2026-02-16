@@ -66,6 +66,22 @@ export default function ApiKeys() {
 
   const getUsedRequests = (key: ApiKeyEntry) => key.usedRequests ?? 0;
   const getUsedTokens = (key: ApiKeyEntry) => key.usedTokens ?? 0;
+  const formatRecentDateTime = (value?: string) => {
+    if (!value) return '-';
+    const dt = new Date(value);
+    if (Number.isNaN(dt.getTime())) return '-';
+    const mm = String(dt.getMonth() + 1).padStart(2, '0');
+    const dd = String(dt.getDate()).padStart(2, '0');
+    const yyyy = String(dt.getFullYear());
+    const hh = String(dt.getHours()).padStart(2, '0');
+    const min = String(dt.getMinutes()).padStart(2, '0');
+    return `${mm}.${dd}.${yyyy}|${hh}:${min}`;
+  };
+  const latestUsedAt = keys.length
+    ? keys.reduce((latest, key) => {
+        return new Date(key.createdAt).getTime() > new Date(latest.createdAt).getTime() ? key : latest;
+      }).createdAt
+    : undefined;
 
   const toggleKeyVisibility = async (keyId: string) => {
     const isCurrentlyVisible = showKeys[keyId];
@@ -187,16 +203,13 @@ export default function ApiKeys() {
               </Card>
               <Card className="bg-slate-900/50 border-white/10">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-200">총 사용 토큰</CardTitle>
+                  <CardTitle className="text-sm font-medium text-slate-200">가장 최근 사용</CardTitle>
                   <Calendar className="size-4 text-green-500" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-white">
-                    {keys.reduce((sum, k) => sum + (k.totalUsedTokens ?? 0), 0).toLocaleString()}
+                    {formatRecentDateTime(latestUsedAt)}
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">
-                    / {keys.reduce((sum, k) => sum + k.totalTokens, 0).toLocaleString()} limit
-                  </p>
                 </CardContent>
               </Card>
             </div>
