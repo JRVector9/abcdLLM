@@ -6,7 +6,7 @@ const CHUNK_RELOAD_KEY = "__chunk_reload_once__";
 
 const shouldRecoverByReload = (error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
-  return /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i.test(
+  return /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|Cannot read properties of undefined \(reading 'default'\)|Route module missing default export/i.test(
     message
   );
 };
@@ -14,6 +14,9 @@ const shouldRecoverByReload = (error: unknown) => {
 const lazyPage = (importPage: () => Promise<PageModule>) => async () => {
   try {
     const page = await importPage();
+    if (!page || !page.default) {
+      throw new Error("Route module missing default export");
+    }
     sessionStorage.removeItem(CHUNK_RELOAD_KEY);
     return { Component: page.default };
   } catch (error) {
