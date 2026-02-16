@@ -12,11 +12,11 @@ import {
   Eye,
   EyeOff,
   Key,
-  Calendar,
   Activity,
   Check,
   Info,
   BookOpen,
+  Coins,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ApiKeyEntry } from '../types';
@@ -53,6 +53,12 @@ export default function ApiKeys() {
       setLoading(false);
     }
   };
+
+  const getUsedRequests = (key: ApiKeyEntry) => key.usedRequests ?? 0;
+  const getUsedTokens = (key: ApiKeyEntry) => key.usedTokens ?? 0;
+
+  const totalUsedTokensSum = keys.reduce((sum, k) => sum + (k.totalUsedTokens ?? 0), 0);
+  const totalTokensSum = keys.reduce((sum, k) => sum + k.totalTokens, 0);
 
   const toggleKeyVisibility = async (keyId: string) => {
     const isCurrentlyVisible = showKeys[keyId];
@@ -165,19 +171,29 @@ export default function ApiKeys() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-white">
-                    {keys.reduce((sum, k) => sum + k.dailyRequests, 0).toLocaleString()}
+                    {keys.reduce((sum, k) => sum + getUsedRequests(k), 0).toLocaleString()}
+                    <span className="text-lg text-slate-500 font-normal"> / {keys.reduce((sum, k) => sum + k.dailyRequests, 0).toLocaleString()}</span>
                   </div>
                 </CardContent>
               </Card>
               <Card className="bg-slate-900/50 border-white/10">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-200">가장 최근 사용</CardTitle>
-                  <Calendar className="size-4 text-green-500" />
+                  <CardTitle className="text-sm font-medium text-slate-200">전체 토큰 사용량</CardTitle>
+                  <Coins className="size-4 text-emerald-500" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-white">
-                    {keys.length > 0 ? keys[0].createdAt : '-'}
+                    {totalUsedTokensSum.toLocaleString()}
+                    <span className="text-lg text-slate-500 font-normal"> / {totalTokensSum.toLocaleString()}</span>
                   </div>
+                  {totalTokensSum > 0 && (
+                    <div className="h-1.5 bg-white/10 rounded-full overflow-hidden mt-2">
+                      <div
+                        className="h-full bg-emerald-500"
+                        style={{ width: `${Math.min(100, Math.round((totalUsedTokensSum / totalTokensSum) * 100))}%` }}
+                      />
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -279,7 +295,29 @@ export default function ApiKeys() {
             {/* Key List */}
             <div className="space-y-4">
               {loading ? (
-                <div className="text-center py-12 text-slate-400">Loading...</div>
+                <>
+                  {[1, 2].map(i => (
+                    <Card key={i} className="bg-slate-900/50 border-white/10 animate-pulse">
+                      <CardContent className="p-6">
+                        <div className="flex flex-col md:flex-row justify-between gap-6">
+                          <div className="flex-1 space-y-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-slate-700/50 rounded-lg" />
+                              <div className="space-y-2">
+                                <div className="h-4 w-32 bg-slate-700/50 rounded" />
+                                <div className="h-3 w-24 bg-slate-800/50 rounded" />
+                              </div>
+                            </div>
+                            <div className="h-12 bg-slate-800/50 rounded-lg" />
+                          </div>
+                          <div className="w-full md:w-[300px]">
+                            <div className="h-28 bg-slate-800/50 rounded-lg" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </>
               ) : keys.length === 0 ? (
                 <div className="text-center py-12 text-slate-400">API 키가 없습니다. 새 키를 생성하세요.</div>
               ) : (

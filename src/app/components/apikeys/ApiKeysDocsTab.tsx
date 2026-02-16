@@ -1,11 +1,11 @@
-import { Activity, BookOpen, Code, ShieldCheck, Terminal, Zap } from 'lucide-react';
+import { Activity, BookOpen, Code, ShieldCheck, Terminal, Zap, Workflow } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 
 const MODELS = [
-  { name: 'qwen3:8b', desc: 'Qwen3 8B - fast general purpose' },
-  { name: 'qwen2.5:32b', desc: 'Qwen2.5 32B - higher quality' },
-  { name: 'gemma2:27b', desc: 'Gemma2 27B - balanced quality/speed' },
-  { name: 'exaone3.5:7.8b', desc: 'EXAONE 3.5 - Korean optimized' },
+  { name: 'qwen3:8b', desc: 'Qwen3 8B - 빠른 범용 모델' },
+  { name: 'qwen2.5:32b', desc: 'Qwen2.5 32B - 고품질 응답' },
+  { name: 'gemma3:27b', desc: 'Gemma3 27B - 균형잡힌 성능' },
+  { name: 'exaone3.5:7.8b', desc: 'EXAONE 3.5 - 한국어 특화' },
 ];
 
 export default function ApiKeysDocsTab() {
@@ -60,6 +60,23 @@ export default function ApiKeysDocsTab() {
   -H "Authorization: Bearer sk-abcd-YOUR_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"model":"qwen3:8b","messages":[{"role":"user","content":"Hello!"}]}'`}</pre>
+              </div>
+            </div>
+            <div>
+              <h4 className="text-slate-200 font-bold mb-3">Python (OpenAI SDK)</h4>
+              <div className="bg-slate-950/50 p-4 rounded-xl border border-white/10 font-mono text-sm overflow-x-auto">
+                <pre className="text-emerald-400">{`from openai import OpenAI
+
+client = OpenAI(
+    api_key="sk-abcd-YOUR_KEY",
+    base_url="https://abcdllm-api.brut.bot/v1",
+)
+
+response = client.chat.completions.create(
+    model="qwen3:8b",
+    messages=[{"role": "user", "content": "Hello!"}],
+)
+print(response.choices[0].message.content)`}</pre>
               </div>
             </div>
           </CardContent>
@@ -126,15 +143,27 @@ export default function ApiKeysDocsTab() {
         <Card className="bg-gradient-to-br from-[#1a0a2e]/50 to-slate-900/50 border-purple-500/20">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
-              <Zap className="w-5 h-5 text-[#ff6d5a]" />
-              n8n Tip
+              <Workflow className="w-5 h-5 text-[#ff6d5a]" />
+              n8n 연동 가이드
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-xs text-slate-300">
-              OpenAI Chat Model 노드에서 Base URL을
-              <code className="text-purple-300"> https://abcdllm-api.brut.bot/v1</code> 로 설정하면 바로 연동됩니다.
-            </p>
+          <CardContent className="space-y-4 text-xs text-slate-300">
+            <div className="space-y-2">
+              <p className="text-slate-200 font-semibold">1. Credentials 생성</p>
+              <p>Credentials &rarr; <code className="text-purple-300">OpenAi API</code> 선택</p>
+              <p>API Key: <code className="text-purple-300">sk-abcd-YOUR_KEY</code></p>
+              <p>Base URL: <code className="text-purple-300">https://abcdllm-api.brut.bot/v1</code></p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-slate-200 font-semibold">2. 노드 설정</p>
+              <p><code className="text-purple-300">OpenAI Chat Model</code> 또는 <code className="text-purple-300">AI Agent</code> 노드 추가</p>
+              <p>Model: <code className="text-purple-300">qwen3:8b</code> 등 입력</p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-slate-200 font-semibold">3. 주의사항</p>
+              <p>- 모델명은 Available Models 목록 참고</p>
+              <p>- streaming은 지원되지 않습니다</p>
+            </div>
           </CardContent>
         </Card>
       </div>
