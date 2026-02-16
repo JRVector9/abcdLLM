@@ -2,10 +2,32 @@ import { createBrowserRouter } from "react-router";
 import type { ComponentType } from "react";
 
 type PageModule = { default: ComponentType };
+const CHUNK_RELOAD_KEY = "__chunk_reload_once__";
+
+const shouldRecoverByReload = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  return /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i.test(
+    message
+  );
+};
 
 const lazyPage = (importPage: () => Promise<PageModule>) => async () => {
-  const page = await importPage();
-  return { Component: page.default };
+  try {
+    const page = await importPage();
+    sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+    return { Component: page.default };
+  } catch (error) {
+    if (typeof window !== "undefined" && shouldRecoverByReload(error)) {
+      const hasReloaded = sessionStorage.getItem(CHUNK_RELOAD_KEY) === "1";
+      if (!hasReloaded) {
+        sessionStorage.setItem(CHUNK_RELOAD_KEY, "1");
+        window.location.reload();
+        return new Promise<never>(() => {});
+      }
+      sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+    }
+    throw error;
+  }
 };
 
 export const router = createBrowserRouter([
