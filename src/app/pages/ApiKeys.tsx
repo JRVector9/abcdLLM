@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -21,16 +21,25 @@ import {
 import { toast } from 'sonner';
 import { ApiKeyEntry } from '../types';
 import { getKeys, createKey, deleteKey as apiDeleteKey, revealKey } from '../services/apiService';
+import { useSWR } from '../hooks/useSWR';
 
 const ApiKeysDocsTab = lazy(() => import('../components/apikeys/ApiKeysDocsTab'));
 
+const keysFetcher = () => getKeys();
+
 export default function ApiKeys() {
-  const [keys, setKeys] = useState<(ApiKeyEntry & { plainKey?: string })[]>([]);
+  const { data: fetchedKeys, isLoading: loading, mutate } = useSWR<ApiKeyEntry[]>('api-keys', keysFetcher);
+  const [localKeys, setLocalKeys] = useState<(ApiKeyEntry & { plainKey?: string })[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showKeys, setShowKeys] = useState<{ [key: string]: boolean }>({});
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('keys');
+
+  // Merge fetched keys with local overrides (plainKey etc)
+  const keys: (ApiKeyEntry & { plainKey?: string })[] = (fetchedKeys ?? []).map(fk => {
+    const local = localKeys.find(lk => lk.id === fk.id);
+    return local ? { ...fk, plainKey: local.plainKey } : fk;
+  }).concat(localKeys.filter(lk => !(fetchedKeys ?? []).some(fk => fk.id === lk.id)));
 
   const [newKeyForm, setNewKeyForm] = useState({
     name: '',
@@ -38,21 +47,6 @@ export default function ApiKeys() {
     dailyTokens: 2000,
     totalTokens: 5000
   });
-
-  useEffect(() => {
-    loadKeys();
-  }, []);
-
-  const loadKeys = async () => {
-    try {
-      const data = await getKeys();
-      setKeys(data);
-    } catch {
-      toast.error('API 키 목록을 불러올 수 없습니다');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getUsedRequests = (key: ApiKeyEntry) => key.usedRequests ?? 0;
   const getUsedTokens = (key: ApiKeyEntry) => key.usedTokens ?? 0;
@@ -68,11 +62,12 @@ export default function ApiKeys() {
       try {
         const { key: fullKey } = await revealKey(keyId);
         // Update the key in state with the full key
-        setKeys(prevKeys =>
-          prevKeys.map(k =>
-            k.id === keyId ? { ...k, plainKey: fullKey } : k
-          )
-        );
+        setLocalKeys(prev => {
+          const exists = prev.some(k => k.id === keyId);
+          if (exists) return prev.map(k => k.id === keyId ? { ...k, plainKey: fullKey } : k);
+          const original = keys.find(k => k.id === keyId);
+          return original ? [...prev, { ...original, plainKey: fullKey }] : prev;
+        });
         setShowKeys(prev => ({ ...prev, [keyId]: true }));
       } catch (error) {
         toast.error('전체 키를 불러올 수 없습니다');
@@ -92,13 +87,14 @@ export default function ApiKeys() {
         dailyTokens: newKeyForm.dailyTokens,
         totalTokens: newKeyForm.totalTokens,
       });
-      setKeys([result, ...keys]);
+      setLocalKeys(prev => [result, ...prev]);
       setIsCreating(false);
       setNewKeyForm({ name: '', dailyRequests: 100, dailyTokens: 2000, totalTokens: 5000 });
       toast.success('새 API 키가 생성되었습니다');
       if (result.plainKey) {
         toast.info('생성된 키를 안전하게 보관하세요. 다시 확인할 수 없습니다.');
       }
+      mutate();
     } catch {
       toast.error('API 키 생성 실패');
     }
@@ -115,8 +111,9 @@ export default function ApiKeys() {
     if (window.confirm('Are you sure you want to revoke this API key?')) {
       try {
         await apiDeleteKey(id);
-        setKeys(keys.filter(k => k.id !== id));
+        setLocalKeys(prev => prev.filter(k => k.id !== id));
         toast.success('API 키가 삭제되었습니다');
+        mutate();
       } catch {
         toast.error('API 키 삭제 실패');
       }
