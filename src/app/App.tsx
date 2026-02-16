@@ -5,7 +5,14 @@ import { Toaster } from './components/ui/sonner';
 export default function App() {
   return (
     <>
-      <RouterProvider router={router} />
+      <RouterProvider
+        router={router}
+        fallbackElement={
+          <div className="min-h-screen bg-slate-950 text-slate-300 flex items-center justify-center">
+            Loading...
+          </div>
+        }
+      />
       <Toaster />
     </>
   );

@@ -2,6 +2,8 @@ import { User, ApiKeyEntry, SecurityEvent, ModelPerformance, ModelInfo, UsageSta
 
 const TOKEN_KEY = 'token';
 const USER_KEY = 'user';
+let meCache: User | null = null;
+let meRequest: Promise<User> | null = null;
 
 // ─── Auth helpers ──────────────────────────────────────────────
 
@@ -12,11 +14,14 @@ export function getToken(): string | null {
 export function setAuth(token: string, user: User) {
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(USER_KEY, JSON.stringify(user));
+  meCache = user;
 }
 
 export function clearAuth() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
+  meCache = null;
+  meRequest = null;
 }
 
 export function getStoredUser(): User | null {
@@ -85,9 +90,32 @@ export async function signup(email: string, password: string, name: string): Pro
 }
 
 export async function getMe(): Promise<User> {
-  const res = await authFetch('/auth/me');
-  if (!res.ok) throw new Error('Failed to fetch user');
-  return res.json();
+  if (meCache) return meCache;
+
+  const stored = getStoredUser();
+  if (stored) {
+    meCache = stored;
+    return stored;
+  }
+
+  if (meRequest) {
+    return meRequest;
+  }
+
+  meRequest = (async () => {
+    const res = await authFetch('/auth/me');
+    if (!res.ok) throw new Error('Failed to fetch user');
+    const user = await res.json();
+    meCache = user;
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    return user;
+  })();
+
+  try {
+    return await meRequest;
+  } finally {
+    meRequest = null;
+  }
 }
 
 // ─── Dashboard ─────────────────────────────────────────────────

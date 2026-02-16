@@ -1,49 +1,48 @@
 import { createBrowserRouter } from "react-router";
-import Landing from "./pages/Landing";
-import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
-import ApiKeys from "./pages/ApiKeys";
-import Playground from "./pages/Playground";
-import Usage from "./pages/Usage";
-import Admin from "./pages/Admin";
-import ApiApplication from "./pages/ApiApplication";
-import Settings from "./pages/Settings";
+import type { ComponentType } from "react";
+
+type PageModule = { default: ComponentType };
+
+const lazyPage = (importPage: () => Promise<PageModule>) => async () => {
+  const page = await importPage();
+  return { Component: page.default };
+};
 
 export const router = createBrowserRouter([
   {
     path: "/",
-    Component: Landing,
+    lazy: lazyPage(() => import("./pages/Landing")),
   },
   {
     path: "/login",
-    Component: Login,
+    lazy: lazyPage(() => import("./pages/Login")),
   },
   {
     path: "/dashboard",
-    Component: Dashboard,
+    lazy: lazyPage(() => import("./pages/Dashboard")),
   },
   {
     path: "/api-keys",
-    Component: ApiKeys,
+    lazy: lazyPage(() => import("./pages/ApiKeys")),
   },
   {
     path: "/playground",
-    Component: Playground,
+    lazy: lazyPage(() => import("./pages/Playground")),
   },
   {
     path: "/usage",
-    Component: Usage,
+    lazy: lazyPage(() => import("./pages/Usage")),
   },
   {
     path: "/admin",
-    Component: Admin,
+    lazy: lazyPage(() => import("./pages/Admin")),
   },
   {
     path: "/api-application",
-    Component: ApiApplication,
+    lazy: lazyPage(() => import("./pages/ApiApplication")),
   },
   {
     path: "/settings",
-    Component: Settings,
+    lazy: lazyPage(() => import("./pages/Settings")),
   },
 ]);
