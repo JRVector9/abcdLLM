@@ -4,26 +4,28 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
-    # Docker internal DNS resolver — re-resolve on every request
-    resolver 127.0.0.11 valid=5s ipv6=off;
-    set $backend "http://${BACKEND_HOST}:8000";
+    # Use public DNS to resolve external backend domain via Traefik
+    resolver 8.8.8.8 1.1.1.1 valid=30s ipv6=off;
+    set $backend "https://abcdllm-api.brut.bot";
 
     location /api/ {
         proxy_pass $backend;
-        proxy_set_header Host $host;
+        proxy_set_header Host abcdllm-api.brut.bot;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_ssl_server_name on;
         proxy_connect_timeout 5s;
         proxy_read_timeout 120s;
     }
 
     location /v1/ {
         proxy_pass $backend;
-        proxy_set_header Host $host;
+        proxy_set_header Host abcdllm-api.brut.bot;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_ssl_server_name on;
         proxy_connect_timeout 5s;
         proxy_read_timeout 120s;
     }

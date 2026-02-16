@@ -37,17 +37,17 @@ async function authFetch(path: string, opts: RequestInit = {}): Promise<Response
   }
   const res = await fetch(`/api${path}`, { ...opts, headers });
 
-  // 502: DB 일시적 장애 → 1회 재시도 (재시도 결과는 그대로 반환, 리다이렉트 안 함)
-  if (res.status === 502) {
-    await new Promise(r => setTimeout(r, 1000));
-    return fetch(`/api${path}`, { ...opts, headers });
-  }
-
-  // 401: 실제 인증 실패 → 세션 삭제
-  if (res.status === 401) {
-    clearAuth();
-    window.location.href = '/login';
-    throw new Error('Unauthorized');
+  // 502 또는 401: 1회 재시도 (일시적 라우팅/DB 장애 대응)
+  if (res.status === 502 || res.status === 401) {
+    await new Promise(r => setTimeout(r, 500));
+    const retry = await fetch(`/api${path}`, { ...opts, headers });
+    // 재시도도 401이면 진짜 인증 실패 → 세션 삭제
+    if (retry.status === 401) {
+      clearAuth();
+      window.location.href = '/login';
+      throw new Error('Unauthorized');
+    }
+    return retry;
   }
   return res;
 }
