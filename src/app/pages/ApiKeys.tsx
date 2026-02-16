@@ -390,8 +390,28 @@ export default function ApiKeys() {
                     <div className="mt-4 p-3 bg-blue-950/30 border border-blue-500/20 rounded-xl">
                       <p className="text-xs text-blue-300">
                         <strong>Base URL:</strong>{' '}
-                        <code className="bg-slate-950 px-1.5 py-0.5 rounded text-blue-200">https://abcdllm-api.jrai.space</code>
+                        <code className="bg-slate-950 px-1.5 py-0.5 rounded text-blue-200">https://abcdllm-api.brut.bot</code>
                       </p>
+                    </div>
+
+                    {/* Available Models */}
+                    <div className="mt-4">
+                      <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Available Models</h4>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { name: 'qwen3:8b', desc: 'Qwen3 8B — 빠른 추론, 범용' },
+                          { name: 'qwen2.5:32b', desc: 'Qwen2.5 32B — 고품질 응답' },
+                          { name: 'gemma2:27b', desc: 'Gemma2 27B — Google 오픈모델' },
+                          { name: 'exaone3.5:7.8b', desc: 'EXAONE 3.5 — 한국어 특화' },
+                          { name: 'llama3.1:8b', desc: 'Llama 3.1 8B — 경량 범용' },
+                          { name: 'llama3.1:70b', desc: 'Llama 3.1 70B — 대형 모델' },
+                        ].map(m => (
+                          <div key={m.name} className="bg-slate-950/50 p-3 rounded-lg border border-white/10">
+                            <code className="text-xs text-blue-400 font-mono">{m.name}</code>
+                            <p className="text-[10px] text-slate-500 mt-1">{m.desc}</p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -419,7 +439,7 @@ export default function ApiKeys() {
                       <h4 className="text-slate-200 font-bold mb-3">cURL</h4>
                       <div className="bg-slate-950/50 p-4 rounded-xl border border-white/10 font-mono text-sm overflow-x-auto">
                         <pre className="text-blue-400">
-{`curl https://abcdllm-api.jrai.space/v1/chat/completions \\
+{`curl https://abcdllm-api.brut.bot/v1/chat/completions \\
   -H "Authorization: Bearer sk-abcd-YOUR_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -438,7 +458,7 @@ export default function ApiKeys() {
 
 client = OpenAI(
     api_key="sk-abcd-YOUR_KEY",
-    base_url="https://abcdllm-api.jrai.space/v1"
+    base_url="https://abcdllm-api.brut.bot/v1"
 )
 
 res = client.chat.completions.create(
@@ -455,7 +475,7 @@ print(res.choices[0].message.content)`}
                       <div className="bg-slate-950/50 p-4 rounded-xl border border-white/10 font-mono text-sm overflow-x-auto">
                         <pre className="text-amber-400">
 {`const res = await fetch(
-  "https://abcdllm-api.jrai.space/v1/chat/completions",
+  "https://abcdllm-api.brut.bot/v1/chat/completions",
   {
     method: "POST",
     headers: {
@@ -507,7 +527,7 @@ console.log(data.choices[0].message.content);`}
                             <p className="text-white font-medium">Base URL 변경</p>
                             <p className="text-slate-400 text-xs mt-1">
                               Credential 편집 → <strong>Override Base URL</strong> 체크 →{' '}
-                              <code className="text-purple-300">https://abcdllm-api.jrai.space/v1</code> 입력
+                              <code className="text-purple-300">https://abcdllm-api.brut.bot/v1</code> 입력
                             </p>
                           </div>
                         </div>
@@ -529,7 +549,7 @@ console.log(data.choices[0].message.content);`}
                         <pre className="text-[#ff6d5a]">
 {`// HTTP Request 노드 설정
 Method: POST
-URL: https://abcdllm-api.jrai.space/v1/chat/completions
+URL: https://abcdllm-api.brut.bot/v1/chat/completions
 
 // Headers
 Authorization: Bearer sk-abcd-YOUR_KEY
@@ -578,7 +598,7 @@ Content-Type: application/json
                             <p className="text-white font-medium">Base URL 설정</p>
                             <p className="text-slate-400 text-xs mt-1">
                               Base URL에 입력:{' '}
-                              <code className="text-orange-300">https://abcdllm-api.jrai.space/api/v1</code>
+                              <code className="text-orange-300">https://abcdllm-api.brut.bot/api/v1</code>
                             </p>
                           </div>
                         </div>
