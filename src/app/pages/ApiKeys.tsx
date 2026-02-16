@@ -46,13 +46,26 @@ export default function ApiKeys() {
   const loadKeys = async () => {
     try {
       const data = await getKeys();
-      setKeys(data);
+      setKeys(
+        data.map((key: any) => ({
+          ...key,
+          dailyRequests: key.dailyRequests ?? key.daily_requests ?? 0,
+          dailyTokens: key.dailyTokens ?? key.daily_tokens ?? 0,
+          totalTokens: key.totalTokens ?? key.total_tokens ?? 0,
+          usedRequests: key.usedRequests ?? key.used_requests ?? 0,
+          usedTokens: key.usedTokens ?? key.used_tokens ?? 0,
+          totalUsedTokens: key.totalUsedTokens ?? key.total_used_tokens ?? 0,
+        }))
+      );
     } catch {
       toast.error('API 키 목록을 불러올 수 없습니다');
     } finally {
       setLoading(false);
     }
   };
+
+  const getUsedRequests = (key: ApiKeyEntry) => key.usedRequests ?? 0;
+  const getUsedTokens = (key: ApiKeyEntry) => key.usedTokens ?? 0;
 
   const toggleKeyVisibility = async (keyId: string) => {
     const isCurrentlyVisible = showKeys[keyId];
@@ -160,12 +173,12 @@ export default function ApiKeys() {
               </Card>
               <Card className="bg-slate-900/50 border-white/10">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-200">오늘 요청 수</CardTitle>
+                  <CardTitle className="text-sm font-medium text-slate-200">오늘 사용 요청</CardTitle>
                   <Activity className="size-4 text-purple-500" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-white">
-                    {keys.reduce((sum, k) => sum + (k.usedRequests ?? 0), 0).toLocaleString()}
+                    {keys.reduce((sum, k) => sum + getUsedRequests(k), 0).toLocaleString()}
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
                     / {keys.reduce((sum, k) => sum + k.dailyRequests, 0).toLocaleString()} limit
@@ -325,22 +338,19 @@ export default function ApiKeys() {
                             <div>
                               <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Daily Req</div>
                               <div className="text-sm font-bold text-white">
-                                {(k.usedRequests ?? 0).toLocaleString()}
-                                <span className="text-slate-500 font-normal"> / {k.dailyRequests}</span>
+                                {getUsedRequests(k).toLocaleString()} / {k.dailyRequests.toLocaleString()}
                               </div>
                             </div>
                             <div>
                               <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Daily Tokens</div>
                               <div className="text-sm font-bold text-white">
-                                {(k.usedTokens ?? 0).toLocaleString()}
-                                <span className="text-slate-500 font-normal"> / {k.dailyTokens.toLocaleString()}</span>
+                                {getUsedTokens(k).toLocaleString()} / {k.dailyTokens.toLocaleString()}
                               </div>
                             </div>
                             <div>
                               <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Total Used</div>
                               <div className="text-sm font-bold text-emerald-400">
-                                {(k.totalUsedTokens ?? 0).toLocaleString()}
-                                <span className="text-slate-500 font-normal"> / {k.totalTokens.toLocaleString()}</span>
+                                {(k.totalUsedTokens ?? 0).toLocaleString()} / {k.totalTokens.toLocaleString()}
                               </div>
                             </div>
                           </div>
