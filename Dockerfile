@@ -3,21 +3,13 @@ WORKDIR /app
 COPY package.json ./
 RUN npm install --legacy-peer-deps && npm install react@18.3.1 react-dom@18.3.1
 COPY . .
+ARG VITE_API_BASE=
+ENV VITE_API_BASE=${VITE_API_BASE}
 RUN npm run build
 
 FROM nginx:alpine
-
-# Install gettext for envsubst
-RUN apk add --no-cache gettext
-
 COPY --from=build /app/dist /usr/share/nginx/html
-COPY nginx.conf.template /etc/nginx/templates/default.conf.template
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-
-# Set default value for BACKEND_HOST if not provided
-ENV BACKEND_HOST=app-calculate-open-source-application-wc8qgt
-
-RUN chmod +x /docker-entrypoint.sh
+COPY nginx.conf.template /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
-ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD ["nginx", "-g", "daemon off;"]
