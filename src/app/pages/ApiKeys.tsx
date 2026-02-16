@@ -160,24 +160,30 @@ export default function ApiKeys() {
               </Card>
               <Card className="bg-slate-900/50 border-white/10">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-200">총 API 요청</CardTitle>
+                  <CardTitle className="text-sm font-medium text-slate-200">오늘 요청 수</CardTitle>
                   <Activity className="size-4 text-purple-500" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-white">
-                    {keys.reduce((sum, k) => sum + k.dailyRequests, 0).toLocaleString()}
+                    {keys.reduce((sum, k) => sum + (k.usedRequests ?? 0), 0).toLocaleString()}
                   </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    / {keys.reduce((sum, k) => sum + k.dailyRequests, 0).toLocaleString()} limit
+                  </p>
                 </CardContent>
               </Card>
               <Card className="bg-slate-900/50 border-white/10">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-200">가장 최근 사용</CardTitle>
+                  <CardTitle className="text-sm font-medium text-slate-200">총 사용 토큰</CardTitle>
                   <Calendar className="size-4 text-green-500" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-white">
-                    {keys.length > 0 ? keys[0].createdAt : '-'}
+                    {keys.reduce((sum, k) => sum + (k.totalUsedTokens ?? 0), 0).toLocaleString()}
                   </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    / {keys.reduce((sum, k) => sum + k.totalTokens, 0).toLocaleString()} limit
+                  </p>
                 </CardContent>
               </Card>
             </div>
@@ -314,19 +320,28 @@ export default function ApiKeys() {
                           </div>
                         </div>
 
-                        <div className="flex flex-col md:items-end justify-between min-w-[180px]">
+                        <div className="flex flex-col md:items-end justify-between min-w-[200px]">
                           <div className="grid grid-cols-3 md:flex md:flex-col gap-4 text-right">
                             <div>
                               <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Daily Req</div>
-                              <div className="text-sm font-bold text-white">{k.dailyRequests}</div>
+                              <div className="text-sm font-bold text-white">
+                                {(k.usedRequests ?? 0).toLocaleString()}
+                                <span className="text-slate-500 font-normal"> / {k.dailyRequests}</span>
+                              </div>
                             </div>
                             <div>
                               <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Daily Tokens</div>
-                              <div className="text-sm font-bold text-white">{k.dailyTokens.toLocaleString()}</div>
+                              <div className="text-sm font-bold text-white">
+                                {(k.usedTokens ?? 0).toLocaleString()}
+                                <span className="text-slate-500 font-normal"> / {k.dailyTokens.toLocaleString()}</span>
+                              </div>
                             </div>
                             <div>
-                              <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Total Limit</div>
-                              <div className="text-sm font-bold text-emerald-400">{k.totalTokens.toLocaleString()}</div>
+                              <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Total Used</div>
+                              <div className="text-sm font-bold text-emerald-400">
+                                {(k.totalUsedTokens ?? 0).toLocaleString()}
+                                <span className="text-slate-500 font-normal"> / {k.totalTokens.toLocaleString()}</span>
+                              </div>
                             </div>
                           </div>
                           <Button size="sm" variant="ghost" onClick={() => handleDeleteKey(k.id)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10 mt-4">

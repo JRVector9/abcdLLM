@@ -24,9 +24,15 @@ export interface ApiKeyEntry {
   name: string;
   key: string;
   createdAt: string;
+  // Limits
   dailyRequests: number;
   dailyTokens: number;
   totalTokens: number;
+  // Actual usage
+  usedRequests: number;
+  usedTokens: number;
+  totalUsedTokens: number;
+  lastResetDate: string;
 }
 
 export interface SecurityEvent {
