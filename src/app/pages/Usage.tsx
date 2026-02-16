@@ -19,8 +19,6 @@ import {
   Cell
 } from 'recharts';
 import {
-  TrendingUp,
-  TrendingDown,
   Activity,
   Clock,
   Zap,
@@ -71,10 +69,7 @@ export default function Usage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-white">{todayRequests.toLocaleString()}</div>
-              <div className="flex items-center gap-1 text-xs text-green-500 mt-1">
-                <TrendingUp className="size-3" />
-                <span>+18.2% 어제 대비</span>
-              </div>
+              <p className="text-xs text-slate-500 mt-1">오늘</p>
             </CardContent>
           </Card>
 
@@ -87,10 +82,7 @@ export default function Usage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-white">{avgResponseTime}ms</div>
-              <div className="flex items-center gap-1 text-xs text-green-500 mt-1">
-                <TrendingDown className="size-3" />
-                <span>-5.3% 어제 대비</span>
-              </div>
+              <p className="text-xs text-slate-500 mt-1">최근 7일 평균</p>
             </CardContent>
           </Card>
 
@@ -103,26 +95,20 @@ export default function Usage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-white">{todayTokens > 1000 ? `${(todayTokens / 1000).toFixed(1)}K` : todayTokens}</div>
-              <div className="flex items-center gap-1 text-xs text-green-500 mt-1">
-                <TrendingUp className="size-3" />
-                <span>+23.1% 어제 대비</span>
-              </div>
+              <p className="text-xs text-slate-500 mt-1">오늘</p>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-orange-600/20 to-orange-600/5 border-orange-500/20">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-slate-200">
-                에러율
+                총 요청 수
               </CardTitle>
               <Activity className="size-4 text-orange-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-white">0.27%</div>
-              <div className="flex items-center gap-1 text-xs text-red-500 mt-1">
-                <TrendingUp className="size-3" />
-                <span>+0.05% 어제 대비</span>
-              </div>
+              <div className="text-3xl font-bold text-white">{totalRequests.toLocaleString()}</div>
+              <p className="text-xs text-slate-500 mt-1">누적</p>
             </CardContent>
           </Card>
         </div>

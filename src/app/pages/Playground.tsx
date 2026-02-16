@@ -28,7 +28,7 @@ import { chat as apiChat, listModels as apiListModels, ollamaHealth as apiHealth
 export default function Playground() {
   const [messages, setMessages] = useState<(Message & { timestamp?: Date })[]>([]);
   const [input, setInput] = useState('');
-  const [selectedModel, setSelectedModel] = useState('llama3:8b');
+  const [selectedModel, setSelectedModel] = useState('qwen3:8b');
   const [temperature, setTemperature] = useState([0.7]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -92,7 +92,7 @@ export default function Playground() {
     } catch {
       setMessages(prev => [...prev, {
         role: 'assistant' as const,
-        content: 'Error: Could not connect to Ollama. Make sure `ollama serve` is running on localhost:11434.',
+        content: 'Error: 모델 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.',
         timestamp: new Date(),
       }]);
     } finally {

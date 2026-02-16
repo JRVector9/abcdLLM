@@ -24,7 +24,7 @@ export default function ApiApplication() {
     projectName: '',
     useCase: '',
     estimatedDailyTokens: '50000',
-    model: 'llama3:8b'
+    model: 'qwen3:8b'
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -100,10 +100,12 @@ export default function ApiApplication() {
                         value={formData.model}
                         onChange={e => setFormData({ ...formData, model: e.target.value })}
                       >
-                        <option value="llama3:8b">Llama 3 (8B)</option>
-                        <option value="llama3:70b">Llama 3 (70B)</option>
-                        <option value="mistral:latest">Mistral Latest</option>
-                        <option value="phi3:mini">Phi-3 Mini</option>
+                        <option value="qwen3:8b">Qwen3 8B (범용, 빠른 추론)</option>
+                        <option value="qwen2.5:32b">Qwen2.5 32B (고품질 응답)</option>
+                        <option value="gemma2:27b">Gemma2 27B (Google 오픈모델)</option>
+                        <option value="exaone3.5:7.8b">EXAONE 3.5 (한국어 특화)</option>
+                        <option value="llama3.1:8b">Llama 3.1 8B (경량 범용)</option>
+                        <option value="llama3.1:70b">Llama 3.1 70B (대형 모델)</option>
                       </select>
                     </div>
                   </div>

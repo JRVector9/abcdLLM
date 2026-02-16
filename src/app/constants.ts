@@ -76,10 +76,12 @@ export const MOCK_SECURITY_EVENTS: SecurityEvent[] = [
 ];
 
 export const MOCK_MODEL_PERFORMANCE: ModelPerformance[] = [
-  { name: 'llama3:8b', tokensPerSec: 65, avgLatency: 120, memoryUsage: '4.8GB', errorRate: 0.2 },
-  { name: 'mistral:latest', tokensPerSec: 58, avgLatency: 145, memoryUsage: '4.1GB', errorRate: 0.5 },
-  { name: 'phi3:mini', tokensPerSec: 92, avgLatency: 85, memoryUsage: '2.4GB', errorRate: 0.1 },
-  { name: 'codellama:7b', tokensPerSec: 52, avgLatency: 180, memoryUsage: '3.9GB', errorRate: 1.2 }
+  { name: 'qwen3:8b', tokensPerSec: 65, avgLatency: 120, memoryUsage: '4.8GB', errorRate: 0.2 },
+  { name: 'qwen2.5:32b', tokensPerSec: 35, avgLatency: 280, memoryUsage: '18GB', errorRate: 0.3 },
+  { name: 'gemma2:27b', tokensPerSec: 38, avgLatency: 250, memoryUsage: '16GB', errorRate: 0.2 },
+  { name: 'exaone3.5:7.8b', tokensPerSec: 70, avgLatency: 110, memoryUsage: '4.5GB', errorRate: 0.1 },
+  { name: 'llama3.1:8b', tokensPerSec: 68, avgLatency: 115, memoryUsage: '4.7GB', errorRate: 0.2 },
+  { name: 'llama3.1:70b', tokensPerSec: 18, avgLatency: 450, memoryUsage: '40GB', errorRate: 0.5 }
 ];
 
 export const MOCK_API_REQUESTS: ApiRequest[] = [
@@ -96,10 +98,12 @@ export const MOCK_API_REQUESTS: ApiRequest[] = [
 ];
 
 export const MOCK_MODELS: ModelInfo[] = [
-  { name: 'llama3:8b', size: '4.7 GB', modified: '2 days ago', parameterCount: '8B' },
-  { name: 'mistral:latest', size: '4.1 GB', modified: '1 week ago', parameterCount: '7B' },
-  { name: 'phi3:mini', size: '2.3 GB', modified: '3 hours ago', parameterCount: '3.8B' },
-  { name: 'codellama:7b', size: '3.8 GB', modified: '1 month ago', parameterCount: '7B' }
+  { name: 'qwen3:8b', size: '4.9 GB', modified: 'recently', parameterCount: '8B' },
+  { name: 'qwen2.5:32b', size: '19 GB', modified: 'recently', parameterCount: '32B' },
+  { name: 'gemma2:27b', size: '16 GB', modified: 'recently', parameterCount: '27B' },
+  { name: 'exaone3.5:7.8b', size: '4.5 GB', modified: 'recently', parameterCount: '7.8B' },
+  { name: 'llama3.1:8b', size: '4.7 GB', modified: 'recently', parameterCount: '8B' },
+  { name: 'llama3.1:70b', size: '40 GB', modified: 'recently', parameterCount: '70B' }
 ];
 
 export const MOCK_USAGE: UsageStat[] = [
