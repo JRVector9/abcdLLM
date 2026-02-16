@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -16,15 +16,13 @@ import {
   Activity,
   Check,
   Info,
-  ShieldCheck,
   BookOpen,
-  Terminal,
-  Code,
-  Zap
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ApiKeyEntry } from '../types';
 import { getKeys, createKey, deleteKey as apiDeleteKey, revealKey } from '../services/apiService';
+
+const ApiKeysDocsTab = lazy(() => import('../components/apikeys/ApiKeysDocsTab'));
 
 export default function ApiKeys() {
   const [keys, setKeys] = useState<(ApiKeyEntry & { plainKey?: string })[]>([]);
@@ -32,6 +30,7 @@ export default function ApiKeys() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showKeys, setShowKeys] = useState<{ [key: string]: boolean }>({});
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('keys');
 
   const [newKeyForm, setNewKeyForm] = useState({
     name: '',
@@ -134,7 +133,7 @@ export default function ApiKeys() {
           </div>
         </div>
 
-        <Tabs defaultValue="keys" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="bg-slate-900/50 border border-white/10">
             <TabsTrigger value="keys" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
               <Key className="w-4 h-4 mr-2" />
@@ -343,393 +342,12 @@ export default function ApiKeys() {
             </div>
           </TabsContent>
 
-          {/* Usage Guide Tab */}
           <TabsContent value="docs" className="space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 space-y-8">
-                {/* Endpoints Reference */}
-                <Card className="bg-slate-900/50 border-white/10">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <Activity className="w-6 h-6 text-emerald-400" />
-                      API Endpoints
-                    </CardTitle>
-                    <CardDescription>OpenAI 호환 형식 — 기존 OpenAI SDK, LangChain, n8n 등에서 base_url만 변경하면 사용 가능</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="bg-slate-950/50 p-4 rounded-xl border border-white/10">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="bg-emerald-600/20 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded">POST</span>
-                          <code className="text-sm text-white font-mono">/v1/chat/completions</code>
-                        </div>
-                        <p className="text-xs text-slate-400">채팅 완성 — OpenAI 호환 응답 형식</p>
-                      </div>
-                      <div className="bg-slate-950/50 p-4 rounded-xl border border-white/10">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="bg-blue-600/20 text-blue-400 text-[10px] font-bold px-2 py-0.5 rounded">GET</span>
-                          <code className="text-sm text-white font-mono">/v1/models</code>
-                        </div>
-                        <p className="text-xs text-slate-400">사용 가능한 모델 목록 조회</p>
-                      </div>
-                      <div className="bg-slate-950/50 p-4 rounded-xl border border-white/10">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="bg-emerald-600/20 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded">POST</span>
-                          <code className="text-sm text-white font-mono">/api/v1/chat</code>
-                        </div>
-                        <p className="text-xs text-slate-400">채팅 (Ollama 네이티브 응답 형식)</p>
-                      </div>
-                      <div className="bg-slate-950/50 p-4 rounded-xl border border-white/10">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="bg-blue-600/20 text-blue-400 text-[10px] font-bold px-2 py-0.5 rounded">GET</span>
-                          <code className="text-sm text-white font-mono">/api/v1/health</code>
-                        </div>
-                        <p className="text-xs text-slate-400">Ollama 서버 상태 확인</p>
-                      </div>
-                    </div>
-                    <div className="mt-4 p-3 bg-blue-950/30 border border-blue-500/20 rounded-xl">
-                      <p className="text-xs text-blue-300">
-                        <strong>Base URL:</strong>{' '}
-                        <code className="bg-slate-950 px-1.5 py-0.5 rounded text-blue-200">https://abcdllm-api.brut.bot</code>
-                      </p>
-                    </div>
-
-                    {/* Available Models */}
-                    <div className="mt-4">
-                      <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Available Models</h4>
-                      <div className="grid grid-cols-2 gap-2">
-                        {[
-                          { name: 'qwen3:8b', desc: 'Qwen3 8B — 빠른 추론, 범용' },
-                          { name: 'qwen2.5:32b', desc: 'Qwen2.5 32B — 고품질 응답' },
-                          { name: 'gemma2:27b', desc: 'Gemma2 27B — Google 오픈모델' },
-                          { name: 'exaone3.5:7.8b', desc: 'EXAONE 3.5 — 한국어 특화' },
-                          { name: 'llama3.1:8b', desc: 'Llama 3.1 8B — 경량 범용' },
-                          { name: 'llama3.1:70b', desc: 'Llama 3.1 70B — 대형 모델' },
-                        ].map(m => (
-                          <div key={m.name} className="bg-slate-950/50 p-3 rounded-lg border border-white/10">
-                            <code className="text-xs text-blue-400 font-mono">{m.name}</code>
-                            <p className="text-[10px] text-slate-500 mt-1">{m.desc}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-slate-900/50 border-white/10">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <Terminal className="w-6 h-6 text-blue-400" />
-                      Integration Guide
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div>
-                      <h4 className="text-slate-200 font-bold mb-3">Authentication</h4>
-                      <p className="text-slate-400 text-sm leading-relaxed mb-4">
-                        모든 API 요청에 <code className="bg-slate-950 text-blue-300 px-1.5 py-0.5 rounded">Authorization</code> 헤더로 API 키를 포함하세요.
-                      </p>
-                      <div className="bg-slate-950/50 p-4 rounded-xl border border-white/10 font-mono text-sm text-slate-300">
-                        <span className="text-slate-500"># Header format</span><br />
-                        Authorization: Bearer sk-abcd-YOUR_KEY_HERE
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="text-slate-200 font-bold mb-3">cURL</h4>
-                      <div className="bg-slate-950/50 p-4 rounded-xl border border-white/10 font-mono text-sm overflow-x-auto">
-                        <pre className="text-blue-400">
-{`curl https://abcdllm-api.brut.bot/v1/chat/completions \\
-  -H "Authorization: Bearer sk-abcd-YOUR_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "model": "qwen3:8b",
-    "messages": [{"role": "user", "content": "Hello!"}]
-  }'`}
-                        </pre>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="text-slate-200 font-bold mb-3">Python (OpenAI SDK)</h4>
-                      <div className="bg-slate-950/50 p-4 rounded-xl border border-white/10 font-mono text-sm overflow-x-auto">
-                        <pre className="text-emerald-400">
-{`from openai import OpenAI
-
-client = OpenAI(
-    api_key="sk-abcd-YOUR_KEY",
-    base_url="https://abcdllm-api.brut.bot/v1"
-)
-
-res = client.chat.completions.create(
-    model="qwen3:8b",
-    messages=[{"role": "user", "content": "Hello!"}]
-)
-print(res.choices[0].message.content)`}
-                        </pre>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="text-slate-200 font-bold mb-3">JavaScript (fetch)</h4>
-                      <div className="bg-slate-950/50 p-4 rounded-xl border border-white/10 font-mono text-sm overflow-x-auto">
-                        <pre className="text-amber-400">
-{`const res = await fetch(
-  "https://abcdllm-api.brut.bot/v1/chat/completions",
-  {
-    method: "POST",
-    headers: {
-      "Authorization": "Bearer sk-abcd-YOUR_KEY",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "qwen3:8b",
-      messages: [{ role: "user", content: "Hello!" }],
-    }),
-  }
-);
-const data = await res.json();
-console.log(data.choices[0].message.content);`}
-                        </pre>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* n8n Integration Guide */}
-                <Card className="bg-gradient-to-br from-[#1a0a2e]/50 to-slate-900/50 border-purple-500/20">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <Zap className="w-6 h-6 text-[#ff6d5a]" />
-                      n8n Integration
-                    </CardTitle>
-                    <CardDescription>n8n 워크플로우에서 abcdLLM을 사용하는 방법</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div>
-                      <h4 className="text-slate-200 font-bold mb-3">방법 1: OpenAI Chat Model 노드 (추천)</h4>
-                      <p className="text-slate-400 text-sm mb-3">
-                        n8n의 <code className="bg-slate-950 text-purple-300 px-1.5 py-0.5 rounded">OpenAI Chat Model</code> 노드를 그대로 사용할 수 있습니다.
-                      </p>
-                      <div className="bg-slate-950/50 p-4 rounded-xl border border-white/10 space-y-3 text-sm">
-                        <div className="flex items-start gap-3">
-                          <span className="bg-purple-600/20 text-purple-400 text-xs font-bold px-2 py-0.5 rounded shrink-0">1</span>
-                          <div>
-                            <p className="text-white font-medium">Credentials 설정</p>
-                            <p className="text-slate-400 text-xs mt-1">
-                              OpenAI API Credential 생성 → API Key에 <code className="text-purple-300">sk-abcd-YOUR_KEY</code> 입력
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <span className="bg-purple-600/20 text-purple-400 text-xs font-bold px-2 py-0.5 rounded shrink-0">2</span>
-                          <div>
-                            <p className="text-white font-medium">Base URL 변경</p>
-                            <p className="text-slate-400 text-xs mt-1">
-                              Credential 편집 → <strong>Override Base URL</strong> 체크 →{' '}
-                              <code className="text-purple-300">https://abcdllm-api.brut.bot/v1</code> 입력
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <span className="bg-purple-600/20 text-purple-400 text-xs font-bold px-2 py-0.5 rounded shrink-0">3</span>
-                          <div>
-                            <p className="text-white font-medium">모델 지정</p>
-                            <p className="text-slate-400 text-xs mt-1">
-                              Model 필드에 <code className="text-purple-300">qwen3:8b</code> 등 사용할 모델명 직접 입력
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="text-slate-200 font-bold mb-3">방법 2: HTTP Request 노드</h4>
-                      <div className="bg-slate-950/50 p-4 rounded-xl border border-white/10 font-mono text-sm overflow-x-auto">
-                        <pre className="text-[#ff6d5a]">
-{`// HTTP Request 노드 설정
-Method: POST
-URL: https://abcdllm-api.brut.bot/v1/chat/completions
-
-// Headers
-Authorization: Bearer sk-abcd-YOUR_KEY
-Content-Type: application/json
-
-// Body (JSON)
-{
-  "model": "qwen3:8b",
-  "messages": [
-    {
-      "role": "system",
-      "content": "You are a helpful assistant."
-    },
-    {
-      "role": "user",
-      "content": "{{ $json.input }}"
-    }
-  ]
-}
-
-// 응답에서 텍스트 추출
-{{ $json.choices[0].message.content }}`}
-                        </pre>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="text-slate-200 font-bold mb-3">방법 3: Ollama Chat Model 노드</h4>
-                      <p className="text-slate-400 text-sm mb-3">
-                        n8n의 <code className="bg-slate-950 text-purple-300 px-1.5 py-0.5 rounded">Ollama Chat Model</code> 노드는 API Key 필드가 없으므로,
-                        Base URL에 키를 포함하는 방식으로 설정합니다.
-                      </p>
-                      <div className="bg-slate-950/50 p-4 rounded-xl border border-white/10 space-y-3 text-sm">
-                        <div className="flex items-start gap-3">
-                          <span className="bg-orange-600/20 text-orange-400 text-xs font-bold px-2 py-0.5 rounded shrink-0">1</span>
-                          <div>
-                            <p className="text-white font-medium">Ollama API Credential 생성</p>
-                            <p className="text-slate-400 text-xs mt-1">
-                              n8n → Credentials → New → <strong>Ollama API</strong> 선택
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <span className="bg-orange-600/20 text-orange-400 text-xs font-bold px-2 py-0.5 rounded shrink-0">2</span>
-                          <div>
-                            <p className="text-white font-medium">Base URL 설정</p>
-                            <p className="text-slate-400 text-xs mt-1">
-                              Base URL에 입력:{' '}
-                              <code className="text-orange-300">https://abcdllm-api.brut.bot/api/v1</code>
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <span className="bg-orange-600/20 text-orange-400 text-xs font-bold px-2 py-0.5 rounded shrink-0">3</span>
-                          <div>
-                            <p className="text-white font-medium">Ollama Chat Model 노드 설정</p>
-                            <p className="text-slate-400 text-xs mt-1">
-                              Model 필드에 <code className="text-orange-300">qwen3:8b</code> 등 모델명 입력
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="mt-3 p-3 bg-red-950/30 border border-red-500/20 rounded-xl">
-                        <p className="text-xs text-red-300">
-                          <strong>주의:</strong> Ollama 노드는 API Key 인증을 지원하지 않습니다.
-                          인증이 필요한 경우 <strong>OpenAI Chat Model 노드</strong>(방법 1)를 사용하세요.
-                          Ollama 노드는 내부 네트워크 등 인증 없이 접근 가능한 환경에서만 사용할 수 있습니다.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="p-3 bg-amber-950/30 border border-amber-500/20 rounded-xl">
-                      <p className="text-xs text-amber-300">
-                        <strong>Tip:</strong> AI Agent 노드에서도 OpenAI Chat Model을 Sub-Node로 연결하면 동일하게 사용 가능합니다.
-                        Tool 호출, 메모리 등 n8n AI 기능을 모두 활용할 수 있습니다.
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-slate-900/50 border-white/10">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <ShieldCheck className="w-6 h-6 text-emerald-400" />
-                      Rate Limits & Constraints
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-                        <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Frequency</div>
-                        <div className="text-lg font-bold text-white">100 Req / Day</div>
-                        <p className="text-[10px] text-slate-500 mt-2 italic">Standard Tier limit per key.</p>
-                      </div>
-                      <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-                        <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Throughput</div>
-                        <div className="text-lg font-bold text-white">2,000 Tokens</div>
-                        <p className="text-[10px] text-slate-500 mt-2 italic">Daily rolling window reset.</p>
-                      </div>
-                      <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-                        <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Account Cap</div>
-                        <div className="text-lg font-bold text-rose-400">5,000 Tokens</div>
-                        <p className="text-[10px] text-slate-500 mt-2 italic">Total lifetime usage cap.</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="space-y-6">
-                <Card className="bg-blue-950/20 border-blue-500/20">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <Code className="w-5 h-5 text-blue-400" />
-                      Error Codes
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4 text-xs">
-                    <div className="flex justify-between items-start">
-                      <span className="font-mono text-blue-400 shrink-0 w-12">401</span>
-                      <span className="text-slate-400 text-right">Invalid API key or authorization header missing.</span>
-                    </div>
-                    <div className="flex justify-between items-start">
-                      <span className="font-mono text-rose-400 shrink-0 w-12">429</span>
-                      <span className="text-slate-400 text-right">Daily request or token limit reached. Try again in 24h.</span>
-                    </div>
-                    <div className="flex justify-between items-start">
-                      <span className="font-mono text-amber-400 shrink-0 w-12">403</span>
-                      <span className="text-slate-400 text-right">Forbidden. User IP is not whitelisted.</span>
-                    </div>
-                    <div className="flex justify-between items-start">
-                      <span className="font-mono text-orange-400 shrink-0 w-12">502</span>
-                      <span className="text-slate-400 text-right">Ollama server is unreachable.</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Response Format */}
-                <Card className="bg-slate-900/50 border-white/10">
-                  <CardHeader>
-                    <CardTitle className="text-white text-sm">Response Format</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="bg-slate-950/50 p-3 rounded-xl border border-white/10 font-mono text-[11px] overflow-x-auto">
-                      <pre className="text-slate-300">
-{`{
-  "id": "chatcmpl-abc123",
-  "object": "chat.completion",
-  "model": "qwen3:8b",
-  "choices": [{
-    "index": 0,
-    "message": {
-      "role": "assistant",
-      "content": "응답 내용"
-    },
-    "finish_reason": "stop"
-  }],
-  "usage": {
-    "prompt_tokens": 19,
-    "completion_tokens": 50,
-    "total_tokens": 69
-  }
-}`}
-                      </pre>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-slate-900/50 border-white/10">
-                  <CardHeader>
-                    <CardTitle className="text-white">Support</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-slate-400 leading-relaxed">
-                      문의사항은 관리자에게 연락하세요.
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
+            {activeTab === 'docs' ? (
+              <Suspense fallback={<div className="text-center py-12 text-slate-400">문서 로딩 중...</div>}>
+                <ApiKeysDocsTab />
+              </Suspense>
+            ) : null}
           </TabsContent>
         </Tabs>
       </div>

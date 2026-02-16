@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -32,7 +32,6 @@ import {
   Mail,
   BarChart
 } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import {
   MOCK_MODELS,
   MOCK_USAGE
@@ -47,9 +46,45 @@ import {
   adminGetOllamaSettings,
   adminUpdateOllamaSettings,
 } from '../services/apiService';
-import { User, ModelInfo, SystemMetrics, SecurityEvent, ModelPerformance } from '../types';
+import { User, ModelInfo, SystemMetrics, SecurityEvent, ModelPerformance, UsageStat } from '../types';
+
+function MiniLatencyChart({ data }: { data: UsageStat[] }) {
+  if (data.length === 0) return <div className="text-sm text-slate-500">No latency data</div>;
+
+  const values = data.map((item) => item.responseTime);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = Math.max(1, max - min);
+  const width = 100;
+  const height = 36;
+  const xStep = width / Math.max(1, data.length - 1);
+
+  const points = data
+    .map((item, index) => {
+      const x = index * xStep;
+      const y = height - ((item.responseTime - min) / range) * height;
+      return `${x},${y}`;
+    })
+    .join(' ');
+
+  const areaPath = `M 0 ${height} L ${points} L ${width} ${height} Z`;
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-[300px]" preserveAspectRatio="none" aria-label="Latency chart">
+      <defs>
+        <linearGradient id="latencyFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#10b981" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="#10b981" stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+      <path d={areaPath} fill="url(#latencyFill)" />
+      <polyline points={points} fill="none" stroke="#10b981" strokeWidth="0.8" />
+    </svg>
+  );
+}
 
 export default function Admin() {
+  const [activeTab, setActiveTab] = useState('monitor');
   const [searchQuery, setSearchQuery] = useState('');
   const [insights, setInsights] = useState<string>('Analyzing system patterns...');
   const [liveModels, setLiveModels] = useState<ModelInfo[]>(MOCK_MODELS);
@@ -60,28 +95,50 @@ export default function Admin() {
   const [ollamaUrl, setOllamaUrl] = useState<string>('');
   const [ollamaUrlInput, setOllamaUrlInput] = useState<string>('');
   const [isUpdatingOllamaUrl, setIsUpdatingOllamaUrl] = useState(false);
+  const [securityLoaded, setSecurityLoaded] = useState(false);
+  const [modelsLoaded, setModelsLoaded] = useState(false);
 
   useEffect(() => {
     adminGetUsers().then(setUsers).catch(() => {});
     adminGetMetrics().then(setMetrics).catch(() => {});
-    adminGetSecurityEvents().then(setSecurityEvents).catch(() => {});
-    adminGetModelPerformance().then(setModelPerformance).catch(() => {});
-
     adminGetInsights({ status: 'requesting analysis' }).then(setInsights).catch(() => {});
+  }, []);
 
+  useEffect(() => {
+    if (activeTab !== 'security' || securityLoaded) return;
+    setSecurityLoaded(true);
+    adminGetSecurityEvents().then(setSecurityEvents).catch(() => {});
+  }, [activeTab, securityLoaded]);
+
+  useEffect(() => {
+    if (activeTab !== 'models' || modelsLoaded) return;
+    setModelsLoaded(true);
+
+    adminGetModelPerformance().then(setModelPerformance).catch(() => {});
     listModels()
       .then((fetched) => {
         if (fetched.length > 0) setLiveModels(fetched);
       })
       .catch(() => {});
-
     adminGetOllamaSettings()
       .then((data) => {
         setOllamaUrl(data.ollamaBaseUrl);
         setOllamaUrlInput(data.ollamaBaseUrl);
       })
       .catch(() => {});
-  }, []);
+  }, [activeTab, modelsLoaded]);
+
+  const filteredUsers = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter((u) => {
+      return (
+        u.name.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        (u.ip || '').toLowerCase().includes(q)
+      );
+    });
+  }, [users, searchQuery]);
 
   const handleUpdateOllamaUrl = async () => {
     if (!ollamaUrlInput.trim()) return;
@@ -126,7 +183,7 @@ export default function Admin() {
         </div>
 
         {/* Main Tabs */}
-        <Tabs defaultValue="monitor" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="bg-slate-900/50 border border-white/10 flex-wrap">
             <TabsTrigger value="monitor" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
               <Activity className="w-4 h-4 mr-2" />
@@ -200,21 +257,7 @@ export default function Admin() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={MOCK_USAGE}>
-                      <defs>
-                        <linearGradient id="latencyGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
-                      <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} />
-                      <YAxis stroke="#94a3b8" fontSize={12} />
-                      <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }} />
-                      <Area type="monotone" dataKey="responseTime" stroke="#10b981" fillOpacity={1} fill="url(#latencyGrad)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                  <MiniLatencyChart data={MOCK_USAGE} />
                 </CardContent>
               </Card>
 
@@ -276,7 +319,7 @@ export default function Admin() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                      {users.map(u => (
+                      {filteredUsers.map(u => (
                         <tr key={u.id} className="hover:bg-white/5 transition-colors">
                           <td className="px-6 py-5">
                             <div className="flex items-center gap-4">
