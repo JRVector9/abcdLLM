@@ -333,28 +333,52 @@ export default function ApiKeys() {
                           </div>
                         </div>
 
-                        <div className="flex flex-col md:items-end justify-between min-w-[200px]">
-                          <div className="grid grid-cols-3 md:flex md:flex-col gap-4 text-right">
-                            <div>
-                              <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Daily Req</div>
-                              <div className="text-sm font-bold text-white">
-                                {getUsedRequests(k).toLocaleString()} / {k.dailyRequests.toLocaleString()}
+                        <div className="w-full md:w-[300px] space-y-3">
+                          <div className="bg-slate-950/50 rounded-lg p-4 border border-white/10 space-y-3">
+                            <div className="space-y-1">
+                              <div className="flex justify-between text-[11px]">
+                                <span className="text-slate-400">요청 사용량</span>
+                                <span className="text-white font-semibold">
+                                  {getUsedRequests(k).toLocaleString()} / {k.dailyRequests.toLocaleString()}
+                                </span>
+                              </div>
+                              <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-blue-500"
+                                  style={{ width: `${Math.min(100, Math.round((getUsedRequests(k) / Math.max(1, k.dailyRequests)) * 100))}%` }}
+                                />
                               </div>
                             </div>
-                            <div>
-                              <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Daily Tokens</div>
-                              <div className="text-sm font-bold text-white">
-                                {getUsedTokens(k).toLocaleString()} / {k.dailyTokens.toLocaleString()}
+                            <div className="space-y-1">
+                              <div className="flex justify-between text-[11px]">
+                                <span className="text-slate-400">토큰 사용량</span>
+                                <span className="text-white font-semibold">
+                                  {getUsedTokens(k).toLocaleString()} / {k.dailyTokens.toLocaleString()}
+                                </span>
+                              </div>
+                              <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-violet-500"
+                                  style={{ width: `${Math.min(100, Math.round((getUsedTokens(k) / Math.max(1, k.dailyTokens)) * 100))}%` }}
+                                />
                               </div>
                             </div>
-                            <div>
-                              <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Total Used</div>
-                              <div className="text-sm font-bold text-emerald-400">
-                                {(k.totalUsedTokens ?? 0).toLocaleString()} / {k.totalTokens.toLocaleString()}
+                            <div className="space-y-1">
+                              <div className="flex justify-between text-[11px]">
+                                <span className="text-slate-400">총 사용량</span>
+                                <span className="text-emerald-400 font-semibold">
+                                  {(k.totalUsedTokens ?? 0).toLocaleString()} / {k.totalTokens.toLocaleString()}
+                                </span>
+                              </div>
+                              <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-emerald-500"
+                                  style={{ width: `${Math.min(100, Math.round(((k.totalUsedTokens ?? 0) / Math.max(1, k.totalTokens)) * 100))}%` }}
+                                />
                               </div>
                             </div>
                           </div>
-                          <Button size="sm" variant="ghost" onClick={() => handleDeleteKey(k.id)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10 mt-4">
+                          <Button size="sm" variant="ghost" onClick={() => handleDeleteKey(k.id)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10">
                             <Trash2 className="size-4 mr-2" />
                             삭제
                           </Button>
