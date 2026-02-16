@@ -3,7 +3,7 @@
   import App from "./app/App.tsx";
   import "./styles/index.css";
 
-  // Recover from stale chunk references after a new deployment.
+  // Recover from stale chunk references after a new deployment (cache-bust v2).
   window.addEventListener("vite:preloadError", (event) => {
     event.preventDefault();
     window.location.reload();
