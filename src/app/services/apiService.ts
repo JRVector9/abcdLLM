@@ -36,6 +36,20 @@ async function authFetch(path: string, opts: RequestInit = {}): Promise<Response
     headers['Authorization'] = `Bearer ${token}`;
   }
   const res = await fetch(`/api${path}`, { ...opts, headers });
+
+  // 502: DB 일시적 장애 → 1회 재시도
+  if (res.status === 502) {
+    await new Promise(r => setTimeout(r, 1000));
+    const retry = await fetch(`/api${path}`, { ...opts, headers });
+    if (retry.status === 401) {
+      clearAuth();
+      window.location.href = '/login';
+      throw new Error('Unauthorized');
+    }
+    return retry;
+  }
+
+  // 401: 실제 인증 실패 → 세션 삭제
   if (res.status === 401) {
     clearAuth();
     window.location.href = '/login';
