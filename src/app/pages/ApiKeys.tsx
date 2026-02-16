@@ -352,19 +352,28 @@ export default function ApiKeys() {
                           </div>
                         </div>
 
-                        <div className="flex flex-col md:items-end justify-between min-w-[180px]">
+                        <div className="flex flex-col md:items-end justify-between min-w-[200px]">
                           <div className="grid grid-cols-3 md:flex md:flex-col gap-4 text-right">
                             <div>
                               <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Daily Req</div>
-                              <div className="text-sm font-bold text-white">{k.dailyRequests}</div>
+                              <div className="text-sm font-bold text-white">
+                                {getUsedRequests(k).toLocaleString()}
+                                <span className="text-slate-500 font-normal"> / {k.dailyRequests.toLocaleString()}</span>
+                              </div>
                             </div>
                             <div>
                               <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Daily Tokens</div>
-                              <div className="text-sm font-bold text-white">{k.dailyTokens.toLocaleString()}</div>
+                              <div className="text-sm font-bold text-white">
+                                {getUsedTokens(k).toLocaleString()}
+                                <span className="text-slate-500 font-normal"> / {k.dailyTokens.toLocaleString()}</span>
+                              </div>
                             </div>
                             <div>
                               <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Total Limit</div>
-                              <div className="text-sm font-bold text-emerald-400">{k.totalTokens.toLocaleString()}</div>
+                              <div className="text-sm font-bold text-emerald-400">
+                                {(k.totalUsedTokens ?? 0).toLocaleString()}
+                                <span className="text-slate-500 font-normal"> / {k.totalTokens.toLocaleString()}</span>
+                              </div>
                             </div>
                           </div>
                           <Button size="sm" variant="ghost" onClick={() => handleDeleteKey(k.id)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10 mt-4">
@@ -383,7 +392,7 @@ export default function ApiKeys() {
           <TabsContent value="docs" className="space-y-8">
             {activeTab === 'docs' ? (
               <Suspense fallback={<div className="text-center py-12 text-slate-400">문서 로딩 중...</div>}>
-                <ApiKeysDocsTab />
+                <ApiKeysDocsTab keys={keys} />
               </Suspense>
             ) : null}
           </TabsContent>

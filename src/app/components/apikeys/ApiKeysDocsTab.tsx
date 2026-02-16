@@ -1,5 +1,6 @@
 import { Activity, BookOpen, Code, ShieldCheck, Terminal, Zap, Workflow } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { ApiKeyEntry } from '../../types';
 
 const MODELS = [
   { name: 'qwen3:8b', desc: 'Qwen3 8B - 빠른 범용 모델' },
@@ -8,7 +9,17 @@ const MODELS = [
   { name: 'exaone3.5:7.8b', desc: 'EXAONE 3.5 - 한국어 특화' },
 ];
 
-export default function ApiKeysDocsTab() {
+interface Props {
+  keys: ApiKeyEntry[];
+}
+
+export default function ApiKeysDocsTab({ keys }: Props) {
+  const totalDailyReq = keys.reduce((s, k) => s + k.dailyRequests, 0);
+  const usedReq = keys.reduce((s, k) => s + (k.usedRequests ?? 0), 0);
+  const totalDailyTokens = keys.reduce((s, k) => s + k.dailyTokens, 0);
+  const usedTokens = keys.reduce((s, k) => s + (k.usedTokens ?? 0), 0);
+  const totalTokensCap = keys.reduce((s, k) => s + k.totalTokens, 0);
+  const totalUsed = keys.reduce((s, k) => s + (k.totalUsedTokens ?? 0), 0);
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className="lg:col-span-2 space-y-8">
@@ -130,13 +141,22 @@ print(response.choices[0].message.content)`}</pre>
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-emerald-400" />
-              Limits
+              My Usage
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-slate-300 space-y-2">
-            <p>100 requests/day</p>
-            <p>2,000 tokens/day</p>
-            <p>5,000 total tokens cap</p>
+          <CardContent className="text-sm text-slate-300 space-y-3">
+            <div className="flex justify-between">
+              <span className="text-slate-400">Daily Requests</span>
+              <span className="text-white font-semibold">{usedReq.toLocaleString()} / {totalDailyReq.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400">Daily Tokens</span>
+              <span className="text-white font-semibold">{usedTokens.toLocaleString()} / {totalDailyTokens.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400">Total Cap</span>
+              <span className="text-emerald-400 font-semibold">{totalUsed.toLocaleString()} / {totalTokensCap.toLocaleString()}</span>
+            </div>
           </CardContent>
         </Card>
 
