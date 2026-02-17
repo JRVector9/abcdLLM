@@ -36,10 +36,10 @@ export default function Landing() {
           </div>
           
           <h1 className="text-6xl font-bold text-white leading-tight">
-            당신의 로컬 LLM을
+            오픈소스 LLM
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
-              어디서나 사용하세요
+              편하게 이용하세요
             </span>
           </h1>
           
@@ -53,11 +53,6 @@ export default function Landing() {
             <Link to="/login">
               <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-8">
                 무료로 시작하기 <ArrowRight className="ml-2 size-5" />
-              </Button>
-            </Link>
-            <Link to="/playground">
-              <Button size="lg" variant="outline" className="text-white border-white/20 hover:bg-white/10 text-lg px-8">
-                데모 보기
               </Button>
             </Link>
           </div>
