@@ -177,9 +177,9 @@ export default function Playground() {
 
   return (
     <DashboardLayout>
-      <div className="h-[calc(100vh-12rem)] flex gap-6">
+      <div className="h-[calc(100vh-10rem)] sm:h-[calc(100vh-12rem)] flex gap-4 sm:gap-6">
         {/* Settings Sidebar */}
-        <div className={`${showSettings ? 'w-80' : 'w-0'} transition-all duration-300 overflow-hidden`}>
+        <div className={`${showSettings ? 'w-full sm:w-80' : 'w-0'} transition-all duration-300 overflow-hidden flex-shrink-0`}>
           <Card className="bg-slate-900/50 border-white/10 h-full">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
@@ -336,7 +336,7 @@ export default function Playground() {
                         </div>
                       )}
                       <div
-                        className={`max-w-[70%] rounded-2xl px-4 py-3 ${
+                        className={`max-w-[85%] sm:max-w-[70%] rounded-2xl px-3 sm:px-4 py-3 ${
                           message.role === 'user'
                             ? 'bg-blue-600 text-white'
                             : 'bg-white/5 text-slate-200'

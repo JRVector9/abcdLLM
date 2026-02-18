@@ -307,7 +307,7 @@ export default function Admin() {
                         placeholder="사용자 검색..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10 bg-white/5 border-white/10 text-white w-64"
+                        className="pl-10 bg-white/5 border-white/10 text-white w-full sm:w-64"
                       />
                     </div>
                     <Button variant="outline" className="text-white border-white/20">Export Logs</Button>

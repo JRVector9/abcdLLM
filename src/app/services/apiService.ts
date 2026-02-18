@@ -10,24 +10,29 @@ const API_BASE = import.meta.env.VITE_API_BASE || '';
 // ─── Auth helpers ──────────────────────────────────────────────
 
 export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
+  // localStorage(로그인 유지) 또는 sessionStorage(세션 유지) 순으로 확인
+  return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
 }
 
-export function setAuth(token: string, user: User) {
-  localStorage.setItem(TOKEN_KEY, token);
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
+/** remember=true: localStorage(브라우저 닫아도 유지) / false: sessionStorage(탭 닫으면 만료) */
+export function setAuth(token: string, user: User, remember = true) {
+  const store = remember ? localStorage : sessionStorage;
+  store.setItem(TOKEN_KEY, token);
+  store.setItem(USER_KEY, JSON.stringify(user));
   meCache = user;
 }
 
 export function clearAuth() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(USER_KEY);
   meCache = null;
   meRequest = null;
 }
 
 export function getStoredUser(): User | null {
-  const raw = localStorage.getItem(USER_KEY);
+  const raw = localStorage.getItem(USER_KEY) || sessionStorage.getItem(USER_KEY);
   return raw ? JSON.parse(raw) : null;
 }
 
@@ -35,6 +40,7 @@ export function getStoredUser(): User | null {
 export function clearMeCache(): void {
   meCache = null;
   localStorage.removeItem(USER_KEY);
+  sessionStorage.removeItem(USER_KEY);
 }
 
 // ─── Fetch wrapper ─────────────────────────────────────────────
@@ -67,7 +73,7 @@ async function authFetch(path: string, opts: RequestInit = {}): Promise<Response
 
 // ─── Auth ──────────────────────────────────────────────────────
 
-export async function login(email: string, password: string): Promise<{ user: User; token: string }> {
+export async function login(email: string, password: string, remember = true): Promise<{ user: User; token: string }> {
   const res = await fetch(`${API_BASE}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -78,7 +84,7 @@ export async function login(email: string, password: string): Promise<{ user: Us
     throw new Error(err.detail || 'Login failed');
   }
   const data = await res.json();
-  setAuth(data.token, data.user);
+  setAuth(data.token, data.user, remember);
   return data;
 }
 

@@ -26,7 +26,9 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(
+    () => typeof window !== 'undefined' ? window.innerWidth >= 1024 : true
+  );
   const [user, setUser] = useState<User | null>(getStoredUser());
 
   useEffect(() => {
@@ -43,6 +45,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       })
       .catch(() => {});
   }, []);
+
+  // 모바일에서 페이지 이동 시 사이드바 닫기
+  useEffect(() => {
+    if (window.innerWidth < 1024) setIsSidebarOpen(false);
+  }, [location.pathname]);
 
   // 채팅 완료 시 Live Quota 즉시 갱신
   useEffect(() => {
@@ -84,8 +91,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-slate-950 flex">
+      {/* 모바일 백드롭 */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className={`${isSidebarOpen ? 'w-64' : 'w-20'} bg-slate-900 border-r border-white/10 flex flex-col transition-all duration-300`}>
+      <aside className={`
+        fixed lg:relative h-full lg:h-auto z-50 lg:z-auto
+        ${isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0 w-64 lg:w-20'}
+        bg-slate-900 border-r border-white/10 flex flex-col transition-all duration-300 flex-shrink-0
+      `}>
         {/* Logo */}
         <div className="p-6 border-b border-white/10">
           <Link to="/" className="flex items-center gap-2">
@@ -219,7 +238,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="h-16 bg-slate-900 border-b border-white/10 flex items-center justify-between px-6">
+        <header className="h-16 bg-slate-900 border-b border-white/10 flex items-center justify-between px-4 sm:px-6">
           <Button
             variant="ghost"
             size="sm"
@@ -237,7 +256,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-auto p-8">
+        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
           {children}
         </main>
       </div>

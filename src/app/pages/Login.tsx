@@ -13,6 +13,7 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const [signupName, setSignupName] = useState('');
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
@@ -22,7 +23,7 @@ export default function Login() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await login(loginEmail, loginPassword);
+      await login(loginEmail, loginPassword, rememberMe);
       toast.success('로그인 성공!');
       navigate('/dashboard');
     } catch (err: any) {
@@ -111,7 +112,12 @@ export default function Login() {
 
                 <div className="flex items-center justify-between text-sm">
                   <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
-                    <input type="checkbox" className="rounded border-white/20" />
+                    <input
+                      type="checkbox"
+                      className="rounded border-white/20 w-4 h-4"
+                      checked={rememberMe}
+                      onChange={e => setRememberMe(e.target.checked)}
+                    />
                     <span>로그인 상태 유지</span>
                   </label>
                   <a href="#" className="text-blue-400 hover:text-blue-300">
