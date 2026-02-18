@@ -326,7 +326,7 @@ export default function Playground() {
                       >
                         <p className="text-sm whitespace-pre-wrap">
                           {message.content}
-                          {message.isStreaming && (
+                          {message.isStreaming && message.content && (
                             <span className="inline-block w-0.5 h-4 bg-slate-300 ml-0.5 animate-pulse align-middle" />
                           )}
                         </p>
