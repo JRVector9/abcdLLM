@@ -18,7 +18,8 @@ import {
 import { Link } from 'react-router';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { User, UsageStat } from '../types';
-import { getDashboard, ollamaHealth, getStoredUser } from '../services/apiService';
+import { getDashboard, ollamaHealth, getStoredUser, DashboardData } from '../services/apiService';
+import { useSWR } from '../hooks/useSWR';
 
 const ProgressBar = ({ label, current, total, colorClass = "bg-blue-500" }: { label: string; current: number; total: number; colorClass?: string }) => {
   const percentage = Math.min(100, Math.round((current / total) * 100));
@@ -38,35 +39,26 @@ const ProgressBar = ({ label, current, total, colorClass = "bg-blue-500" }: { la
   );
 };
 
+type DashboardPageData = { dashboard: DashboardData; ollamaOnline: boolean };
+const dashboardFetcher = () =>
+  Promise.all([getDashboard(), ollamaHealth()]).then(([d, h]) => ({ dashboard: d, ollamaOnline: h }));
+
 export default function Dashboard() {
-  const [user, setUser] = useState<User | null>(getStoredUser());
-  const [recentUsage, setRecentUsage] = useState<UsageStat[]>([]);
-  const [activeModels, setActiveModels] = useState(0);
-  const [totalRequests, setTotalRequests] = useState(0);
-  const [ollamaOnline, setOllamaOnline] = useState(false);
+  const { data, isValidating, mutate } = useSWR<DashboardPageData>('dashboard', dashboardFetcher);
+
+  const dashboard = data?.dashboard;
+  const user: User | null = dashboard?.user ?? getStoredUser();
+  const recentUsage: UsageStat[] = dashboard?.recentUsage ?? [];
+  const activeModels = dashboard?.activeModels ?? 0;
+  const totalRequests = dashboard?.totalRequests ?? 0;
+  const ollamaOnline = data?.ollamaOnline ?? false;
   const [resetTime, setResetTime] = useState('');
 
-  const fetchDashboard = () => {
-    Promise.all([getDashboard(), ollamaHealth()])
-      .then(([data, healthy]) => {
-        setUser(data.user);
-        setRecentUsage(data.recentUsage);
-        setActiveModels(data.activeModels);
-        setTotalRequests(data.totalRequests);
-        setOllamaOnline(healthy);
-      })
-      .catch(() => {});
-  };
-
+  // 채팅 완료 시 대시보드 갱신
   useEffect(() => {
-    fetchDashboard();
-  }, []);
-
-  // 채팅 완료 시 토큰 사용량 즉시 갱신
-  useEffect(() => {
-    window.addEventListener('user-quota-updated', fetchDashboard);
-    return () => window.removeEventListener('user-quota-updated', fetchDashboard);
-  }, []);
+    window.addEventListener('user-quota-updated', mutate);
+    return () => window.removeEventListener('user-quota-updated', mutate);
+  }, [mutate]);
 
   useEffect(() => {
     const updateTimer = () => {
@@ -98,9 +90,17 @@ export default function Dashboard() {
             </h1>
             <p className="text-slate-400">Real-time status of your API allocations and usage.</p>
           </div>
-          <div className="flex items-center gap-2 bg-slate-800/80 px-4 py-2 rounded-lg border border-white/10 shadow-lg">
-            <Calendar className="w-4 h-4 text-blue-400" />
-            <span className="text-sm font-medium text-white">Reset in {resetTime}</span>
+          <div className="flex items-center gap-3">
+            {isValidating && (
+              <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                갱신 중
+              </div>
+            )}
+            <div className="flex items-center gap-2 bg-slate-800/80 px-4 py-2 rounded-lg border border-white/10 shadow-lg">
+              <Calendar className="w-4 h-4 text-blue-400" />
+              <span className="text-sm font-medium text-white">Reset in {resetTime}</span>
+            </div>
           </div>
         </div>
 
