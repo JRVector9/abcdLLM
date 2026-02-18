@@ -8,16 +8,20 @@ import { useSWR } from '../hooks/useSWR';
 
 // ─── Lightweight inline SVG chart components ────────────────────
 
-const CHART_H = 220;
-const CHART_PAD = { top: 20, right: 16, bottom: 32, left: 48 };
+const CHART_H = 160;
+const CHART_PAD = { top: 16, right: 16, bottom: 28, left: 48 };
+
+// "2024-11-14" → "11/14"
+const fmtDate = (d: string) => d.length >= 10 ? `${d.slice(5, 7)}/${d.slice(8, 10)}` : d;
 
 function toPath(points: { x: number; y: number }[]): string {
   return points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
 }
 
+const CHART_W = 500;
+
 function AreaChartSVG({ data, dataKey, color, label }: { data: any[]; dataKey: string; color: string; label: string }) {
-  const w = 100; // viewBox percentage
-  const innerW = w - CHART_PAD.left - CHART_PAD.right;
+  const innerW = CHART_W - CHART_PAD.left - CHART_PAD.right;
   const innerH = CHART_H - CHART_PAD.top - CHART_PAD.bottom;
   const values = data.map(d => (d[dataKey] as number) ?? 0);
   const max = Math.max(...values, 1);
@@ -29,23 +33,19 @@ function AreaChartSVG({ data, dataKey, color, label }: { data: any[]; dataKey: s
   }));
 
   const areaPath = `${toPath(points)} L${points[points.length - 1].x},${CHART_PAD.top + innerH} L${points[0].x},${CHART_PAD.top + innerH} Z`;
-
-  // Y-axis ticks
   const ticks = [0, Math.round(max / 2), max];
 
   return (
-    <svg viewBox={`0 0 ${w + 300} ${CHART_H}`} className="w-full" preserveAspectRatio="none" role="img" aria-label={label}>
-      {/* Grid lines */}
+    <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} className="w-full" preserveAspectRatio="xMidYMid meet" role="img" aria-label={label}>
       {ticks.map(t => {
         const y = CHART_PAD.top + innerH - (t / max) * innerH;
         return (
           <g key={t}>
-            <line x1={CHART_PAD.left} y1={y} x2={w + 300 - CHART_PAD.right} y2={y} stroke="#ffffff10" strokeDasharray="4 4" />
+            <line x1={CHART_PAD.left} y1={y} x2={CHART_W - CHART_PAD.right} y2={y} stroke="#ffffff10" strokeDasharray="4 4" />
             <text x={CHART_PAD.left - 6} y={y + 4} textAnchor="end" fill="#94a3b8" fontSize="10">{t.toLocaleString()}</text>
           </g>
         );
       })}
-      {/* Area */}
       <defs>
         <linearGradient id={`grad-${dataKey}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity={0.3} />
@@ -54,12 +54,11 @@ function AreaChartSVG({ data, dataKey, color, label }: { data: any[]; dataKey: s
       </defs>
       <path d={areaPath} fill={`url(#grad-${dataKey})`} />
       <path d={toPath(points)} fill="none" stroke={color} strokeWidth={2} />
-      {/* Dots + labels */}
       {points.map((p, i) => (
         <g key={i}>
           <circle cx={p.x} cy={p.y} r={3} fill={color} />
-          <text x={p.x} y={CHART_PAD.top + innerH + 16} textAnchor="middle" fill="#94a3b8" fontSize="9">
-            {data[i].date}
+          <text x={p.x} y={CHART_PAD.top + innerH + 16} textAnchor="middle" fill="#94a3b8" fontSize="10">
+            {fmtDate(data[i].date)}
           </text>
         </g>
       ))}
@@ -68,23 +67,21 @@ function AreaChartSVG({ data, dataKey, color, label }: { data: any[]; dataKey: s
 }
 
 function BarChartSVG({ data, dataKey, color, label }: { data: any[]; dataKey: string; color: string; label: string }) {
-  const totalW = 400;
-  const innerW = totalW - CHART_PAD.left - CHART_PAD.right;
+  const innerW = CHART_W - CHART_PAD.left - CHART_PAD.right;
   const innerH = CHART_H - CHART_PAD.top - CHART_PAD.bottom;
   const values = data.map(d => (d[dataKey] as number) ?? 0);
   const max = Math.max(...values, 1);
-  const barW = data.length > 0 ? (innerW / data.length) * 0.6 : 20;
   const gap = data.length > 0 ? innerW / data.length : 20;
-
+  const barW = gap * 0.6;
   const ticks = [0, Math.round(max / 2), max];
 
   return (
-    <svg viewBox={`0 0 ${totalW} ${CHART_H}`} className="w-full" preserveAspectRatio="xMidYMid meet" role="img" aria-label={label}>
+    <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} className="w-full" preserveAspectRatio="xMidYMid meet" role="img" aria-label={label}>
       {ticks.map(t => {
         const y = CHART_PAD.top + innerH - (t / max) * innerH;
         return (
           <g key={t}>
-            <line x1={CHART_PAD.left} y1={y} x2={totalW - CHART_PAD.right} y2={y} stroke="#ffffff10" strokeDasharray="4 4" />
+            <line x1={CHART_PAD.left} y1={y} x2={CHART_W - CHART_PAD.right} y2={y} stroke="#ffffff10" strokeDasharray="4 4" />
             <text x={CHART_PAD.left - 6} y={y + 4} textAnchor="end" fill="#94a3b8" fontSize="10">{t.toLocaleString()}</text>
           </g>
         );
@@ -95,9 +92,9 @@ function BarChartSVG({ data, dataKey, color, label }: { data: any[]; dataKey: st
         const y = CHART_PAD.top + innerH - h;
         return (
           <g key={i}>
-            <rect x={x} y={y} width={barW} height={h} rx={4} fill={color} opacity={0.85} />
-            <text x={x + barW / 2} y={CHART_PAD.top + innerH + 16} textAnchor="middle" fill="#94a3b8" fontSize="9">
-              {data[i].date}
+            <rect x={x} y={y} width={barW} height={h} rx={3} fill={color} opacity={0.85} />
+            <text x={x + barW / 2} y={CHART_PAD.top + innerH + 16} textAnchor="middle" fill="#94a3b8" fontSize="10">
+              {fmtDate(data[i].date)}
             </text>
           </g>
         );
@@ -107,8 +104,7 @@ function BarChartSVG({ data, dataKey, color, label }: { data: any[]; dataKey: st
 }
 
 function LineChartSVG({ data, dataKey, color, label }: { data: any[]; dataKey: string; color: string; label: string }) {
-  const totalW = 400;
-  const innerW = totalW - CHART_PAD.left - CHART_PAD.right;
+  const innerW = CHART_W - CHART_PAD.left - CHART_PAD.right;
   const innerH = CHART_H - CHART_PAD.top - CHART_PAD.bottom;
   const values = data.map(d => (d[dataKey] as number) ?? 0);
   const max = Math.max(...values, 1);
@@ -122,12 +118,12 @@ function LineChartSVG({ data, dataKey, color, label }: { data: any[]; dataKey: s
   const ticks = [0, Math.round(max / 2), max];
 
   return (
-    <svg viewBox={`0 0 ${totalW} ${CHART_H}`} className="w-full" preserveAspectRatio="xMidYMid meet" role="img" aria-label={label}>
+    <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} className="w-full" preserveAspectRatio="xMidYMid meet" role="img" aria-label={label}>
       {ticks.map(t => {
         const y = CHART_PAD.top + innerH - (t / max) * innerH;
         return (
           <g key={t}>
-            <line x1={CHART_PAD.left} y1={y} x2={totalW - CHART_PAD.right} y2={y} stroke="#ffffff10" strokeDasharray="4 4" />
+            <line x1={CHART_PAD.left} y1={y} x2={CHART_W - CHART_PAD.right} y2={y} stroke="#ffffff10" strokeDasharray="4 4" />
             <text x={CHART_PAD.left - 6} y={y + 4} textAnchor="end" fill="#94a3b8" fontSize="10">{t.toLocaleString()}</text>
           </g>
         );
@@ -136,8 +132,8 @@ function LineChartSVG({ data, dataKey, color, label }: { data: any[]; dataKey: s
       {points.map((p, i) => (
         <g key={i}>
           <circle cx={p.x} cy={p.y} r={3.5} fill={color} />
-          <text x={p.x} y={CHART_PAD.top + innerH + 16} textAnchor="middle" fill="#94a3b8" fontSize="9">
-            {data[i].date}
+          <text x={p.x} y={CHART_PAD.top + innerH + 16} textAnchor="middle" fill="#94a3b8" fontSize="10">
+            {fmtDate(data[i].date)}
           </text>
         </g>
       ))}
@@ -149,7 +145,7 @@ function LineChartSVG({ data, dataKey, color, label }: { data: any[]; dataKey: s
 
 function ChartSkeleton() {
   return (
-    <div className="h-[220px] bg-slate-800/30 rounded-lg animate-pulse flex items-end justify-around px-12 pb-8 gap-2">
+    <div className="h-[160px] bg-slate-800/30 rounded-lg animate-pulse flex items-end justify-around px-12 pb-8 gap-2">
       {[40, 65, 50, 80, 60, 75, 55].map((h, i) => (
         <div key={i} className="bg-slate-700/40 rounded-t" style={{ width: '10%', height: `${h}%` }} />
       ))}

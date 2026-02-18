@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -12,20 +12,28 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { User } from '../types';
-import { createApplication, getStoredUser } from '../services/apiService';
+import { User, ModelInfo } from '../types';
+import { createApplication, getStoredUser, listModels } from '../services/apiService';
+import { MOCK_MODELS } from '../constants';
 
 export default function ApiApplication() {
   const user: User | null = getStoredUser();
 
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [models, setModels] = useState<ModelInfo[]>(MOCK_MODELS);
   const [formData, setFormData] = useState({
     projectName: '',
     useCase: '',
     estimatedDailyTokens: '50000',
     model: 'qwen3:8b'
   });
+
+  useEffect(() => {
+    listModels()
+      .then(fetched => { if (fetched.length > 0) setModels(fetched); })
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,12 +108,11 @@ export default function ApiApplication() {
                         value={formData.model}
                         onChange={e => setFormData({ ...formData, model: e.target.value })}
                       >
-                        <option value="qwen3:8b">Qwen3 8B (범용, 빠른 추론)</option>
-                        <option value="qwen2.5:32b">Qwen2.5 32B (고품질 응답)</option>
-                        <option value="gemma2:27b">Gemma2 27B (Google 오픈모델)</option>
-                        <option value="exaone3.5:7.8b">EXAONE 3.5 (한국어 특화)</option>
-                        <option value="llama3.1:8b">Llama 3.1 8B (경량 범용)</option>
-                        <option value="llama3.1:70b">Llama 3.1 70B (대형 모델)</option>
+                        {models.map(m => (
+                          <option key={m.name} value={m.name}>
+                            {m.name}{m.parameterCount ? ` (${m.parameterCount})` : ''}{m.size ? ` — ${m.size}` : ''}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>

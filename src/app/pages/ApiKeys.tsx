@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -19,8 +19,9 @@ import {
   Coins,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { ApiKeyEntry } from '../types';
-import { getKeys, createKey, deleteKey as apiDeleteKey, revealKey } from '../services/apiService';
+import { ApiKeyEntry, ModelInfo } from '../types';
+import { getKeys, createKey, deleteKey as apiDeleteKey, revealKey, listModels } from '../services/apiService';
+import { MOCK_MODELS } from '../constants';
 import { useSWR } from '../hooks/useSWR';
 
 const ApiKeysDocsTab = lazy(() => import('../components/apikeys/ApiKeysDocsTab'));
@@ -30,6 +31,13 @@ const keysFetcher = () => getKeys();
 export default function ApiKeys() {
   const { data: fetchedKeys, isLoading: loading, mutate } = useSWR<ApiKeyEntry[]>('api-keys', keysFetcher);
   const [localKeys, setLocalKeys] = useState<(ApiKeyEntry & { plainKey?: string })[]>([]);
+  const [models, setModels] = useState<ModelInfo[]>(MOCK_MODELS);
+
+  useEffect(() => {
+    listModels()
+      .then(fetched => { if (fetched.length > 0) setModels(fetched); })
+      .catch(() => {});
+  }, []);
   const [isCreating, setIsCreating] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showKeys, setShowKeys] = useState<{ [key: string]: boolean }>({});
@@ -389,7 +397,7 @@ export default function ApiKeys() {
           <TabsContent value="docs" className="space-y-8">
             {activeTab === 'docs' ? (
               <Suspense fallback={<div className="text-center py-12 text-slate-400">문서 로딩 중...</div>}>
-                <ApiKeysDocsTab keys={keys} />
+                <ApiKeysDocsTab keys={keys} models={models} />
               </Suspense>
             ) : null}
           </TabsContent>
