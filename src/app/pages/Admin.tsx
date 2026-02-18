@@ -99,9 +99,17 @@ export default function Admin() {
   const [modelsLoaded, setModelsLoaded] = useState(false);
 
   useEffect(() => {
-    adminGetUsers().then(setUsers).catch(() => {});
-    adminGetMetrics().then(setMetrics).catch(() => {});
-    adminGetInsights({ status: 'requesting analysis' }).then(setInsights).catch(() => {});
+    Promise.all([
+      adminGetUsers(),
+      adminGetMetrics(),
+      adminGetInsights({ status: 'requesting analysis' }),
+    ])
+      .then(([users, metrics, insights]) => {
+        setUsers(users);
+        setMetrics(metrics);
+        setInsights(insights);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -114,16 +122,16 @@ export default function Admin() {
     if (activeTab !== 'models' || modelsLoaded) return;
     setModelsLoaded(true);
 
-    adminGetModelPerformance().then(setModelPerformance).catch(() => {});
-    listModels()
-      .then((fetched) => {
+    Promise.all([
+      adminGetModelPerformance(),
+      listModels(),
+      adminGetOllamaSettings(),
+    ])
+      .then(([perf, fetched, ollamaSetting]) => {
+        setModelPerformance(perf);
         if (fetched.length > 0) setLiveModels(fetched);
-      })
-      .catch(() => {});
-    adminGetOllamaSettings()
-      .then((data) => {
-        setOllamaUrl(data.ollamaBaseUrl);
-        setOllamaUrlInput(data.ollamaBaseUrl);
+        setOllamaUrl(ollamaSetting.ollamaBaseUrl);
+        setOllamaUrlInput(ollamaSetting.ollamaBaseUrl);
       })
       .catch(() => {});
   }, [activeTab, modelsLoaded]);

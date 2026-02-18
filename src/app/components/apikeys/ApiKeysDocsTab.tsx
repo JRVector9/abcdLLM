@@ -1,19 +1,13 @@
 import { Activity, BookOpen, Code, ShieldCheck, Terminal, Workflow, Globe } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { ApiKeyEntry } from '../../types';
-
-const MODELS = [
-  { name: 'qwen3:8b', desc: 'Qwen3 8B - 빠른 범용 모델' },
-  { name: 'qwen2.5:32b', desc: 'Qwen2.5 32B - 고품질 응답' },
-  { name: 'gemma3:27b', desc: 'Gemma3 27B - 균형잡힌 성능' },
-  { name: 'exaone3.5:7.8b', desc: 'EXAONE 3.5 - 한국어 특화' },
-];
+import { ApiKeyEntry, ModelInfo } from '../../types';
 
 interface Props {
   keys: ApiKeyEntry[];
+  models?: ModelInfo[];
 }
 
-export default function ApiKeysDocsTab({ keys }: Props) {
+export default function ApiKeysDocsTab({ keys, models = [] }: Props) {
   const totalDailyReq = keys.reduce((s, k) => s + k.dailyRequests, 0);
   const usedReq = keys.reduce((s, k) => s + (k.usedRequests ?? 0), 0);
   const totalDailyTokens = keys.reduce((s, k) => s + k.dailyTokens, 0);
@@ -263,10 +257,12 @@ print(response.content)`}</pre>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {MODELS.map((model) => (
+            {models.map((model) => (
               <div key={model.name} className="bg-slate-950/50 p-3 rounded-lg border border-white/10">
                 <code className="text-xs text-blue-400 font-mono">{model.name}</code>
-                <p className="text-[10px] text-slate-500 mt-1">{model.desc}</p>
+                <p className="text-[10px] text-slate-500 mt-1">
+                  {model.size}{model.parameterCount ? ` · ${model.parameterCount}` : ''}
+                </p>
               </div>
             ))}
           </div>

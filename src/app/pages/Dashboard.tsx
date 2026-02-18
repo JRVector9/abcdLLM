@@ -47,16 +47,15 @@ export default function Dashboard() {
   const [resetTime, setResetTime] = useState('');
 
   useEffect(() => {
-    getDashboard()
-      .then((data) => {
+    Promise.all([getDashboard(), ollamaHealth()])
+      .then(([data, healthy]) => {
         setUser(data.user);
         setRecentUsage(data.recentUsage);
         setActiveModels(data.activeModels);
         setTotalRequests(data.totalRequests);
+        setOllamaOnline(healthy);
       })
       .catch(() => {});
-
-    ollamaHealth().then(setOllamaOnline);
   }, []);
 
   useEffect(() => {
@@ -251,16 +250,11 @@ export default function Dashboard() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${ollamaOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-                  <span className={`font-medium ${ollamaOnline ? 'text-green-500' : 'text-red-500'}`}>
-                    {ollamaOnline ? '연결됨' : '오프라인'}
-                  </span>
-                </div>
-                <Button variant="outline" size="sm" className="text-white border-white/20 hover:bg-white/10">
-                  상세 보기
-                </Button>
+              <div className="flex items-center gap-2">
+                <div className={`w-3 h-3 rounded-full ${ollamaOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+                <span className={`font-medium ${ollamaOnline ? 'text-green-500' : 'text-red-500'}`}>
+                  {ollamaOnline ? '연결됨' : '오프라인'}
+                </span>
               </div>
               <div className="mt-4 pt-4 border-t border-white/10 grid grid-cols-2 gap-4 text-sm">
                 <div>

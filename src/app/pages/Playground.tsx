@@ -23,10 +23,12 @@ import { Label } from '../components/ui/label';
 import { Slider } from '../components/ui/slider';
 import { Message, ModelInfo } from '../types';
 import { MOCK_MODELS } from '../constants';
-import { chat as apiChat, listModels as apiListModels, ollamaHealth as apiHealthCheck } from '../services/apiService';
+import { chatStream as apiChatStream, listModels as apiListModels, ollamaHealth as apiHealthCheck } from '../services/apiService';
+
+type PlaygroundMessage = Message & { timestamp?: Date; isStreaming?: boolean };
 
 export default function Playground() {
-  const [messages, setMessages] = useState<(Message & { timestamp?: Date })[]>([]);
+  const [messages, setMessages] = useState<PlaygroundMessage[]>([]);
   const [input, setInput] = useState('');
   const [selectedModel, setSelectedModel] = useState('qwen3:8b');
   const [temperature, setTemperature] = useState([0.7]);
@@ -46,24 +48,22 @@ export default function Playground() {
   }, [messages]);
 
   useEffect(() => {
-    apiHealthCheck().then(setOllamaOnline);
-
-    apiListModels()
-      .then((fetched) => {
+    Promise.all([apiHealthCheck(), apiListModels()])
+      .then(([healthy, fetched]) => {
+        setOllamaOnline(healthy);
         if (fetched.length > 0) {
           setModels(fetched);
-          setSelectedModel(fetched[0].name);
+          const hasDefault = fetched.some(m => m.name === 'qwen3:8b');
+          if (!hasDefault) setSelectedModel(fetched[0].name);
         }
       })
-      .catch(() => {
-        // keep MOCK_MODELS as fallback
-      });
+      .catch(() => {});
   }, []);
 
   const handleSend = async () => {
     if (!input.trim()) return;
 
-    const userMessage: Message & { timestamp: Date } = {
+    const userMessage: PlaygroundMessage = {
       role: 'user',
       content: input,
       timestamp: new Date(),
@@ -74,27 +74,77 @@ export default function Playground() {
     setInput('');
     setIsLoading(true);
 
+    // 스트리밍 응답을 받을 빈 assistant 메시지를 먼저 추가
+    const assistantPlaceholder: PlaygroundMessage = {
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      isStreaming: true,
+    };
+    setMessages(prev => [...prev, assistantPlaceholder]);
+
     try {
       const chatMessages: Message[] = updatedMessages.map(m => ({
         role: m.role,
         content: m.content,
       }));
 
-      const responseText = await apiChat(selectedModel, chatMessages, {
-        temperature: temperature[0],
+      // 쓰로틀링: 16ms(~60fps)마다 한 번씩만 렌더
+      let pendingText = '';
+      let rafScheduled = false;
+      const flushText = () => {
+        const t = pendingText;
+        setMessages(prev => {
+          const updated = [...prev];
+          const last = updated[updated.length - 1];
+          if (last?.role === 'assistant') {
+            updated[updated.length - 1] = { ...last, content: t, isStreaming: true };
+          }
+          return updated;
+        });
+        rafScheduled = false;
+      };
+
+      await apiChatStream(
+        selectedModel,
+        chatMessages,
+        { temperature: temperature[0] },
+        (text) => {
+          pendingText = text;
+          if (!rafScheduled) {
+            rafScheduled = true;
+            requestAnimationFrame(flushText);
+          }
+        },
+      );
+
+      // 스트리밍 완료 → 커서 제거
+      setMessages(prev => {
+        const updated = [...prev];
+        const last = updated[updated.length - 1];
+        if (last?.role === 'assistant') {
+          updated[updated.length - 1] = { ...last, isStreaming: false };
+        }
+        return updated;
       });
 
-      setMessages(prev => [...prev, {
-        role: 'assistant' as const,
-        content: responseText,
-        timestamp: new Date(),
-      }]);
+      // 채팅 완료 → dashboard/usage SWR 캐시 무효화 (토큰 사용량 즉시 반영)
+      try {
+        sessionStorage.removeItem('swr:dashboard');
+      } catch { /* ignore */ }
     } catch {
-      setMessages(prev => [...prev, {
-        role: 'assistant' as const,
-        content: 'Error: 모델 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.',
-        timestamp: new Date(),
-      }]);
+      setMessages(prev => {
+        const updated = [...prev];
+        const last = updated[updated.length - 1];
+        if (last?.role === 'assistant') {
+          updated[updated.length - 1] = {
+            ...last,
+            content: 'Error: 모델 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.',
+            isStreaming: false,
+          };
+        }
+        return updated;
+      });
     } finally {
       setIsLoading(false);
     }
@@ -268,7 +318,10 @@ export default function Playground() {
                 </div>
               ) : (
                 <>
-                  {messages.map((message, index) => (
+                  {messages.map((message, index) => {
+                    // content가 없는 streaming 플레이스홀더는 bounce dots에 위임
+                    if (message.isStreaming && !message.content) return null;
+                    return (
                     <div
                       key={index}
                       className={`flex gap-3 ${
@@ -287,8 +340,13 @@ export default function Playground() {
                             : 'bg-white/5 text-slate-200'
                         }`}
                       >
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                        {message.timestamp && (
+                        <p className="text-sm whitespace-pre-wrap">
+                          {message.content}
+                          {message.isStreaming && message.content && (
+                            <span className="inline-block w-0.5 h-4 bg-slate-300 ml-0.5 animate-pulse align-middle" />
+                          )}
+                        </p>
+                        {message.timestamp && !message.isStreaming && (
                           <p className="text-xs opacity-50 mt-1">
                             {message.timestamp.toLocaleTimeString('ko-KR', {
                               hour: '2-digit',
@@ -303,17 +361,18 @@ export default function Playground() {
                         </div>
                       )}
                     </div>
-                  ))}
-                  {isLoading && (
+                    );
+                  })}
+                  {isLoading && messages[messages.length - 1]?.content === '' && (
                     <div className="flex gap-3">
                       <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
                         <Bot className="size-4 text-white" />
                       </div>
                       <div className="bg-white/5 rounded-2xl px-4 py-3">
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 items-center">
                           <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
-                          <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                          <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                          <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.15s' }}></div>
+                          <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></div>
                         </div>
                       </div>
                     </div>

@@ -202,6 +202,81 @@ export async function chat(model: string, messages: Message[], options?: { tempe
   return data.message?.content || 'No response from model.';
 }
 
+// chatStream: 스트리밍 지원 시 실시간 토큰, 아니면 시뮬레이션 타이핑
+export async function chatStream(
+  model: string,
+  messages: Message[],
+  options?: { temperature?: number },
+  onToken: (text: string) => void = () => {},
+): Promise<string> {
+  const token = getToken();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE}/api/v1/chat`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      model,
+      messages: messages.map(m => ({ role: m.role, content: m.content })),
+      options: options ? { temperature: options.temperature } : undefined,
+      stream: true,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Chat failed: ${res.status}`);
+  }
+
+  const contentType = res.headers.get('content-type') || '';
+  // 백엔드가 SSE / NDJSON 스트리밍을 지원하는 경우
+  if (res.body && (contentType.includes('text/event-stream') || contentType.includes('application/x-ndjson'))) {
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let fullText = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        const raw = trimmed.startsWith('data: ') ? trimmed.slice(6) : trimmed;
+        if (raw === '[DONE]') return fullText;
+        try {
+          const json = JSON.parse(raw);
+          const content =
+            json.choices?.[0]?.delta?.content ?? // OpenAI SSE
+            json.message?.content ??             // Ollama native
+            json.response ??                     // Ollama /generate
+            '';
+          if (content) { fullText += content; onToken(fullText); }
+          if (json.done === true) return fullText;
+        } catch { /* 파싱 실패 청크 무시 */ }
+      }
+    }
+    return fullText;
+  }
+
+  // 비스트리밍 fallback: 전체 응답 받은 후 타이핑 시뮬레이션
+  const data = await res.json();
+  const fullText: string = data.message?.content || 'No response from model.';
+  const charsPerFrame = Math.max(1, Math.ceil(fullText.length / 120)); // ~120 프레임
+  let i = 0;
+  await new Promise<void>((resolve) => {
+    const timer = setInterval(() => {
+      i += charsPerFrame;
+      onToken(fullText.slice(0, Math.min(i, fullText.length)));
+      if (i >= fullText.length) { clearInterval(timer); resolve(); }
+    }, 16); // ~60fps
+  });
+  return fullText;
+}
+
 export async function listModels(): Promise<ModelInfo[]> {
   const res = await authFetch('/v1/models');
   if (!res.ok) throw new Error('Failed to fetch models');
