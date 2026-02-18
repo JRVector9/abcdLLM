@@ -127,6 +127,11 @@ export default function Playground() {
         }
         return updated;
       });
+
+      // 채팅 완료 → dashboard/usage SWR 캐시 무효화 (토큰 사용량 즉시 반영)
+      try {
+        sessionStorage.removeItem('swr:dashboard');
+      } catch { /* ignore */ }
     } catch {
       setMessages(prev => {
         const updated = [...prev];
