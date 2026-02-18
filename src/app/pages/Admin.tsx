@@ -98,16 +98,28 @@ export default function Admin() {
   const [securityLoaded, setSecurityLoaded] = useState(false);
   const [modelsLoaded, setModelsLoaded] = useState(false);
 
+  // 캐시 헬퍼
+  const readCache = <T,>(key: string): T | null => {
+    try { const v = sessionStorage.getItem('swr:' + key); return v ? JSON.parse(v) : null; } catch { return null; }
+  };
+  const writeCache = (key: string, value: unknown) => {
+    try { sessionStorage.setItem('swr:' + key, JSON.stringify(value)); } catch {}
+  };
+
   useEffect(() => {
+    // 캐시 즉시 표시
+    const cached = readCache<{ users: typeof users; metrics: typeof metrics; insights: string }>('admin-main');
+    if (cached) { setUsers(cached.users); setMetrics(cached.metrics); setInsights(cached.insights); }
+
+    // 백그라운드 갱신
     Promise.all([
       adminGetUsers(),
       adminGetMetrics(),
       adminGetInsights({ status: 'requesting analysis' }),
     ])
-      .then(([users, metrics, insights]) => {
-        setUsers(users);
-        setMetrics(metrics);
-        setInsights(insights);
+      .then(([u, m, i]) => {
+        setUsers(u); setMetrics(m); setInsights(i);
+        writeCache('admin-main', { users: u, metrics: m, insights: i });
       })
       .catch(() => {});
   }, []);
@@ -115,23 +127,34 @@ export default function Admin() {
   useEffect(() => {
     if (activeTab !== 'security' || securityLoaded) return;
     setSecurityLoaded(true);
-    adminGetSecurityEvents().then(setSecurityEvents).catch(() => {});
+
+    const cached = readCache<SecurityEvent[]>('admin-security');
+    if (cached) setSecurityEvents(cached);
+
+    adminGetSecurityEvents().then(events => {
+      setSecurityEvents(events);
+      writeCache('admin-security', events);
+    }).catch(() => {});
   }, [activeTab, securityLoaded]);
 
   useEffect(() => {
     if (activeTab !== 'models' || modelsLoaded) return;
     setModelsLoaded(true);
 
-    Promise.all([
-      adminGetModelPerformance(),
-      listModels(),
-      adminGetOllamaSettings(),
-    ])
+    const cached = readCache<{ perf: ModelPerformance[]; models: ModelInfo[]; url: string }>('admin-models');
+    if (cached) {
+      setModelPerformance(cached.perf);
+      if (cached.models.length > 0) setLiveModels(cached.models);
+      setOllamaUrl(cached.url); setOllamaUrlInput(cached.url);
+    }
+
+    Promise.all([adminGetModelPerformance(), listModels(), adminGetOllamaSettings()])
       .then(([perf, fetched, ollamaSetting]) => {
         setModelPerformance(perf);
         if (fetched.length > 0) setLiveModels(fetched);
         setOllamaUrl(ollamaSetting.ollamaBaseUrl);
         setOllamaUrlInput(ollamaSetting.ollamaBaseUrl);
+        writeCache('admin-models', { perf, models: fetched, url: ollamaSetting.ollamaBaseUrl });
       })
       .catch(() => {});
   }, [activeTab, modelsLoaded]);

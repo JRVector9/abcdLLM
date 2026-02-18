@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -22,28 +22,32 @@ import {
   getStoredUser,
   SettingsData,
 } from '../services/apiService';
+import { useSWR } from '../hooks/useSWR';
+
+const settingsFetcher = () => getSettings();
 
 export default function Settings() {
-  const [user, setUser] = useState<User | null>(getStoredUser());
+  const { data: settingsData } = useSWR<SettingsData>('settings', settingsFetcher);
+
+  const user: User | null = settingsData?.user ?? getStoredUser();
   const [copied, setCopied] = useState(false);
   const [autoUpdate, setAutoUpdate] = useState(false);
   const [detailedLogging, setDetailedLogging] = useState(false);
   const [ipWhitelist, setIpWhitelist] = useState('');
   const [emailAlerts, setEmailAlerts] = useState(false);
   const [usageAlert, setUsageAlert] = useState(false);
+  const initialized = useRef(false);
 
+  // 서버 데이터가 로드되면 로컬 상태에 한 번 동기화
   useEffect(() => {
-    getSettings()
-      .then((data) => {
-        setUser(data.user);
-        setAutoUpdate(data.autoModelUpdate);
-        setDetailedLogging(data.detailedLogging);
-        setIpWhitelist(data.ipWhitelist);
-        setEmailAlerts(data.emailSecurityAlerts);
-        setUsageAlert(data.usageThresholdAlert);
-      })
-      .catch(() => {});
-  }, []);
+    if (!settingsData || initialized.current) return;
+    initialized.current = true;
+    setAutoUpdate(settingsData.autoModelUpdate);
+    setDetailedLogging(settingsData.detailedLogging);
+    setIpWhitelist(settingsData.ipWhitelist);
+    setEmailAlerts(settingsData.emailSecurityAlerts);
+    setUsageAlert(settingsData.usageThresholdAlert);
+  }, [settingsData]);
 
   const copyKey = () => {
     if (user?.apiKey) {
