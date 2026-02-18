@@ -48,20 +48,16 @@ export default function Playground() {
   }, [messages]);
 
   useEffect(() => {
-    apiHealthCheck().then(setOllamaOnline);
-
-    apiListModels()
-      .then((fetched) => {
+    Promise.all([apiHealthCheck(), apiListModels()])
+      .then(([healthy, fetched]) => {
+        setOllamaOnline(healthy);
         if (fetched.length > 0) {
           setModels(fetched);
-          // qwen3:8b가 목록에 없을 때만 첫 번째 모델로 교체
           const hasDefault = fetched.some(m => m.name === 'qwen3:8b');
           if (!hasDefault) setSelectedModel(fetched[0].name);
         }
       })
-      .catch(() => {
-        // keep MOCK_MODELS as fallback
-      });
+      .catch(() => {});
   }, []);
 
   const handleSend = async () => {
@@ -93,20 +89,32 @@ export default function Playground() {
         content: m.content,
       }));
 
+      // 쓰로틀링: 16ms(~60fps)마다 한 번씩만 렌더
+      let pendingText = '';
+      let rafScheduled = false;
+      const flushText = () => {
+        const t = pendingText;
+        setMessages(prev => {
+          const updated = [...prev];
+          const last = updated[updated.length - 1];
+          if (last?.role === 'assistant') {
+            updated[updated.length - 1] = { ...last, content: t, isStreaming: true };
+          }
+          return updated;
+        });
+        rafScheduled = false;
+      };
+
       await apiChatStream(
         selectedModel,
         chatMessages,
         { temperature: temperature[0] },
         (text) => {
-          // 마지막 메시지(assistant placeholder)를 실시간 업데이트
-          setMessages(prev => {
-            const updated = [...prev];
-            const last = updated[updated.length - 1];
-            if (last?.role === 'assistant') {
-              updated[updated.length - 1] = { ...last, content: text, isStreaming: true };
-            }
-            return updated;
-          });
+          pendingText = text;
+          if (!rafScheduled) {
+            rafScheduled = true;
+            requestAnimationFrame(flushText);
+          }
         },
       );
 
@@ -305,7 +313,10 @@ export default function Playground() {
                 </div>
               ) : (
                 <>
-                  {messages.map((message, index) => (
+                  {messages.map((message, index) => {
+                    // content가 없는 streaming 플레이스홀더는 bounce dots에 위임
+                    if (message.isStreaming && !message.content) return null;
+                    return (
                     <div
                       key={index}
                       className={`flex gap-3 ${
@@ -345,7 +356,8 @@ export default function Playground() {
                         </div>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                   {isLoading && messages[messages.length - 1]?.content === '' && (
                     <div className="flex gap-3">
                       <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">

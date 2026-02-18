@@ -47,16 +47,15 @@ export default function Dashboard() {
   const [resetTime, setResetTime] = useState('');
 
   useEffect(() => {
-    getDashboard()
-      .then((data) => {
+    Promise.all([getDashboard(), ollamaHealth()])
+      .then(([data, healthy]) => {
         setUser(data.user);
         setRecentUsage(data.recentUsage);
         setActiveModels(data.activeModels);
         setTotalRequests(data.totalRequests);
+        setOllamaOnline(healthy);
       })
       .catch(() => {});
-
-    ollamaHealth().then(setOllamaOnline);
   }, []);
 
   useEffect(() => {
