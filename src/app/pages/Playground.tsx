@@ -330,7 +330,7 @@ export default function Playground() {
                             <span className="inline-block w-0.5 h-4 bg-slate-300 ml-0.5 animate-pulse align-middle" />
                           )}
                         </p>
-                        {message.timestamp && (
+                        {message.timestamp && !message.isStreaming && (
                           <p className="text-xs opacity-50 mt-1">
                             {message.timestamp.toLocaleTimeString('ko-KR', {
                               hour: '2-digit',
