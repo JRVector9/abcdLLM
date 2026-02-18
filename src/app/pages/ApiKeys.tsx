@@ -210,17 +210,23 @@ export default function ApiKeys() {
               </Card>
             </div>
 
-            {/* Create button or form */}
+            {/* Create button or form — 키 1개 제한 */}
             {!isCreating ? (
-              <div className="flex justify-end">
-                <Button
-                  onClick={() => setIsCreating(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  <Plus className="size-4 mr-2" />
-                  Create New Key
-                </Button>
-              </div>
+              keys.length === 0 ? (
+                <div className="flex justify-end">
+                  <Button
+                    onClick={() => setIsCreating(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    <Plus className="size-4 mr-2" />
+                    Create New Key
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex justify-end">
+                  <span className="text-xs text-slate-500 py-2">API 키는 1개까지 생성 가능합니다</span>
+                </div>
+              )
             ) : (
               <Card className="bg-slate-900/50 border-blue-500/30">
                 <CardHeader>
