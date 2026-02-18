@@ -30,7 +30,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [user, setUser] = useState<User | null>(getStoredUser());
 
   useEffect(() => {
-    // Only verify auth on mount, not on every route change
     const token = localStorage.getItem('token');
     if (!token) {
       navigate('/login');
@@ -42,12 +41,22 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         setUser(u);
         localStorage.setItem('user', JSON.stringify(u));
       })
-      .catch(() => {
-        // authFetch already handles real 401 (clears auth + hard redirect).
-        // If we land here it's a non-auth error (502 / network).
-        // Keep the stored user and don't log out.
-      });
-  }, []); // Empty dependency array - only run on mount
+      .catch(() => {});
+  }, []);
+
+  // 채팅 완료 시 Live Quota 즉시 갱신
+  useEffect(() => {
+    const handleQuotaUpdate = () => {
+      getMe()
+        .then((u) => {
+          setUser(u);
+          localStorage.setItem('user', JSON.stringify(u));
+        })
+        .catch(() => {});
+    };
+    window.addEventListener('user-quota-updated', handleQuotaUpdate);
+    return () => window.removeEventListener('user-quota-updated', handleQuotaUpdate);
+  }, []);
 
   const isAdmin = user?.role === UserRole.ADMIN || user?.role === ('admin' as any);
 

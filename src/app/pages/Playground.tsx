@@ -23,7 +23,7 @@ import { Label } from '../components/ui/label';
 import { Slider } from '../components/ui/slider';
 import { Message, ModelInfo } from '../types';
 import { MOCK_MODELS } from '../constants';
-import { chatStream as apiChatStream, listModels as apiListModels, ollamaHealth as apiHealthCheck } from '../services/apiService';
+import { chatStream as apiChatStream, listModels as apiListModels, ollamaHealth as apiHealthCheck, clearMeCache } from '../services/apiService';
 
 type PlaygroundMessage = Message & { timestamp?: Date; isStreaming?: boolean };
 
@@ -128,9 +128,11 @@ export default function Playground() {
         return updated;
       });
 
-      // 채팅 완료 → dashboard/usage SWR 캐시 무효화 (토큰 사용량 즉시 반영)
+      // 채팅 완료 → 모든 사용량 캐시 무효화 + Live Quota 갱신 이벤트
       try {
         sessionStorage.removeItem('swr:dashboard');
+        clearMeCache(); // meCache + localStorage 무효화
+        window.dispatchEvent(new CustomEvent('user-quota-updated'));
       } catch { /* ignore */ }
     } catch {
       setMessages(prev => {

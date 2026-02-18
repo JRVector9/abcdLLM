@@ -31,6 +31,12 @@ export function getStoredUser(): User | null {
   return raw ? JSON.parse(raw) : null;
 }
 
+/** 채팅 완료 후 meCache 무효화 — 다음 getMe() 호출 시 서버에서 신선한 데이터 fetch */
+export function clearMeCache(): void {
+  meCache = null;
+  localStorage.removeItem(USER_KEY);
+}
+
 // ─── Fetch wrapper ─────────────────────────────────────────────
 
 async function authFetch(path: string, opts: RequestInit = {}): Promise<Response> {
