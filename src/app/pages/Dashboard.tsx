@@ -46,7 +46,7 @@ export default function Dashboard() {
   const [ollamaOnline, setOllamaOnline] = useState(false);
   const [resetTime, setResetTime] = useState('');
 
-  useEffect(() => {
+  const fetchDashboard = () => {
     Promise.all([getDashboard(), ollamaHealth()])
       .then(([data, healthy]) => {
         setUser(data.user);
@@ -56,6 +56,16 @@ export default function Dashboard() {
         setOllamaOnline(healthy);
       })
       .catch(() => {});
+  };
+
+  useEffect(() => {
+    fetchDashboard();
+  }, []);
+
+  // 채팅 완료 시 토큰 사용량 즉시 갱신
+  useEffect(() => {
+    window.addEventListener('user-quota-updated', fetchDashboard);
+    return () => window.removeEventListener('user-quota-updated', fetchDashboard);
   }, []);
 
   useEffect(() => {
