@@ -33,6 +33,7 @@ export default function ApiKeys() {
   const [localKeys, setLocalKeys] = useState<(ApiKeyEntry & { plainKey?: string })[]>([]);
   const [models, setModels] = useState<ModelInfo[]>(MOCK_MODELS);
 
+  // keys와 models를 병렬로 fetch
   useEffect(() => {
     listModels()
       .then(fetched => { if (fetched.length > 0) setModels(fetched); })
@@ -117,12 +118,18 @@ export default function ApiKeys() {
 
   const handleDeleteKey = async (id: string) => {
     if (window.confirm('Are you sure you want to revoke this API key?')) {
+      // 낙관적 업데이트: UI 즉시 반영
+      const prevFetched = fetchedKeys;
+      setLocalKeys(prev => prev.filter(k => k.id !== id));
+      mutate(); // SWR 캐시에서도 즉시 제거 트리거
+
       try {
         await apiDeleteKey(id);
-        setLocalKeys(prev => prev.filter(k => k.id !== id));
         toast.success('API 키가 삭제되었습니다');
-        mutate();
+        mutate(); // 백엔드 확인 후 최종 동기화
       } catch {
+        // 실패 시 롤백
+        if (prevFetched) setLocalKeys(prevFetched);
         toast.error('API 키 삭제 실패');
       }
     }
