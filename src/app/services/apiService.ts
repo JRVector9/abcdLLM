@@ -233,6 +233,7 @@ export async function chatStream(
       messages: messages.map(m => ({ role: m.role, content: m.content })),
       options: options ? { temperature: options.temperature } : undefined,
       stream: true,
+      think: false,  // thinking 모드 비활성화 — 응답속도 최적화
     }),
   });
 
