@@ -32,6 +32,14 @@ function AreaChartSVG({ data, dataKey, color, label }: { data: any[]; dataKey: s
     y: CHART_PAD.top + innerH - (v / max) * innerH,
   }));
 
+  if (points.length === 0) {
+    return (
+      <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} className="w-full" role="img" aria-label={label}>
+        <text x={CHART_W / 2} y={CHART_H / 2} textAnchor="middle" fill="#94a3b8" fontSize="13">데이터 없음</text>
+      </svg>
+    );
+  }
+
   const areaPath = `${toPath(points)} L${points[points.length - 1].x},${CHART_PAD.top + innerH} L${points[0].x},${CHART_PAD.top + innerH} Z`;
   const ticks = [0, Math.round(max / 2), max];
 
@@ -75,6 +83,14 @@ function BarChartSVG({ data, dataKey, color, label }: { data: any[]; dataKey: st
   const barW = gap * 0.6;
   const ticks = [0, Math.round(max / 2), max];
 
+  if (data.length === 0) {
+    return (
+      <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} className="w-full" role="img" aria-label={label}>
+        <text x={CHART_W / 2} y={CHART_H / 2} textAnchor="middle" fill="#94a3b8" fontSize="13">데이터 없음</text>
+      </svg>
+    );
+  }
+
   return (
     <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} className="w-full" preserveAspectRatio="xMidYMid meet" role="img" aria-label={label}>
       {ticks.map(t => {
@@ -116,6 +132,14 @@ function LineChartSVG({ data, dataKey, color, label }: { data: any[]; dataKey: s
   }));
 
   const ticks = [0, Math.round(max / 2), max];
+
+  if (points.length === 0) {
+    return (
+      <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} className="w-full" role="img" aria-label={label}>
+        <text x={CHART_W / 2} y={CHART_H / 2} textAnchor="middle" fill="#94a3b8" fontSize="13">데이터 없음</text>
+      </svg>
+    );
+  }
 
   return (
     <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} className="w-full" preserveAspectRatio="xMidYMid meet" role="img" aria-label={label}>
